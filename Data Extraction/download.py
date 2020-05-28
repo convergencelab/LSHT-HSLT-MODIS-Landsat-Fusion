@@ -15,16 +15,22 @@ scene locations are currently based on dataset aquired from:
 https://www.kaggle.com/paultimothymooney/latitude-and-longitude-for-every-country-and-state
 
 further implementations will consider more than these lat, lons
-"""
 
+***Notes:
+MOD09 (MODIS Surface Reflectance) is a seven-band product computed from the MODIS Level 1B land
+bands 1 (620-670 nm), 2 (841-876 nm), 3 (459-479), 4 (545-565 nm), 5 (1230-1250 nm), 6 (1628-1652 nm), and
+7 (2105-2155 nm). The product is an estimate of the surface spectral reflectance for each band as it would have
+been measured at ground level as if there were no atmospheric scattering or absorption. It corrects for the effects
+of atmospheric gases and aerosols. (src. http://modis-sr.ltdri.org/guide/MOD09_UserGuide_v1.4.pdf)
+***
+"""
 import landsatxplore as le
 from landsatxplore.earthexplorer import EarthExplorer
+from EE_api_extension import EarthExplorerExtended
 import os
 import util
 
-"""
-intialize api
-"""
+### initialize landsatxplore ###
 try:
     username = os.environ['EE_USERNAME']
     password = os.environ['EE_PASSWORD']
@@ -33,91 +39,42 @@ except KeyError:
     username = os.environ['EE_USERNAME']
     password = os.environ['EE_PASSWORD']
 
-
-EE = EarthExplorer(username=username, password=password)
+EEE = EarthExplorerExtended(username=username, password=password)
 api = le.api.API(username=username, password=password)
 
-def download(scenes, dir, EE=EE):
-    """
-    download given scenes
-    :param scenes:list of scene objs
-    :return: None
-    """
-    try:
-        os.mkdir(dir)
-    except FileExistsError:
-        pass
-
-    for scene in scenes:
-        #print(scene['acquisitionDate'])
-        EE.download(scene_id=scene['entityId'], output_dir=dir)
-        break# for now break after first scene
-
-
-"""
-Globals
-"""
-OUTPUT_DIR = "C:/Users/Noah Barrett/Desktop/School/Research 2020/data"
-TIME_FRAME = ('2000-01-01', '2020-01-01')
-### initialize landsatxplore ###
-
-"""
-landsatxplore has two functions:
-      download:  Download one or several Landsat scenes.
-      search:    Search for Landsat scenes.
-      
-this script will search for the appropriate images and then download ones
-which exist with modis
-
-the quality ensurance of images in this approach will be purely through landsat
-images. 
-"""
 ### GET LATS-LONS ###
 lat_lon = util.load_world_lat_lon(r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\world_lat_lon\world_country_and_usa_states_latitude_and_longitude_values.csv")
 iter = lat_lon.iterrows()
-#iter = random.shuffle(iter)
+
+### Params ###
+Datasets = ("LANDSAT_8_C1", "MODIS_MOD09GA_V6")
+OUTPUT_DIR = "C:/Users/Noah Barrett/Desktop/School/Research 2020/data"
+TIME_FRAME = ('2000-01-01', '2020-01-01')
 
 ### SEARCHING EarthExplorer ###
 # Goal: find matching scenes for both data sets
-data_exists = 0
-while not data_exists:
+while True:
     # Loop to find lats/lons that will work
+    # breaks when finds first match
     index, location = next(iter)
     lat = location.latitude
     lon = location.longitude
-    L_scenes = api.search(
-                            dataset='LANDSAT_8_C1',
-                            latitude=lat,
-                            longitude=lon,
-                            start_date=TIME_FRAME[0],
-                            end_date=TIME_FRAME[1],
-                            max_cloud_cover=10)
 
-    """
-    MOD09 (MODIS Surface Reflectance) is a seven-band product computed from the MODIS Level 1B land
-    bands 1 (620-670 nm), 2 (841-876 nm), 3 (459-479), 4 (545-565 nm), 5 (1230-1250 nm), 6 (1628-1652 nm), and
-    7 (2105-2155 nm). The product is an estimate of the surface spectral reflectance for each band as it would have
-    been measured at ground level as if there were no atmospheric scattering or absorption. It corrects for the effects
-    of atmospheric gases and aerosols. (src. http://modis-sr.ltdri.org/guide/MOD09_UserGuide_v1.4.pdf)
-    """
-
-    M_scenes = api.search(
-                          dataset='EMODIS',
-                          latitude=lat,
-                          longitude=lon,
-                          max_cloud_cover=10,
-                          start_date=TIME_FRAME[0],
-                          end_date=TIME_FRAME[1])
-
+    L_scenes, M_scenes = EEE.GET_MODIS_LANDSAT_PAIR(datasets=Datasets,
+                                                    latitude=lat,
+                                                    longitude=lon,
+                                                    start_date=TIME_FRAME[0],
+                                                    end_date=TIME_FRAME[1],
+                                                    max_cloud_cover=10)
 
 
     if not len(L_scenes):
-        print("No scenes found for {} in Landsat8".format(location.country))
+        print("No scenes found for {} in {}".format(location.country, Datasets[0]))
     if not len(M_scenes):
-        print("No scenes found for {} in MODIS".format(location.country))
+        print("No scenes found for {} in {}".format(location.country, Datasets[1]))
     else:
-        print('{}, {} scenes found for {} in Landsat8 and MODIS.'.format(len(L_scenes), len(M_scenes), location.country))
-        data_exists = 1
+        print('{} scenes  found for {},and {} for {} in {}.'.format(len(L_scenes), Datasets[0], len(M_scenes), Datasets[1], location.country))
+        break
 
 
 
@@ -125,6 +82,10 @@ while not data_exists:
 ### Download ###
 L_dir = os.path.join(OUTPUT_DIR+"/landsat", location.country)
 M_dir = os.path.join(OUTPUT_DIR+"/MODIS", location.country)
-download(L_scenes, L_dir)
-download(M_scenes, M_dir)
+"""
+Use LE download function to download scenes for Landsat
+
+Library restricts to the download of landsat content
+"""
+
 api.logout()

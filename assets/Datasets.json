@@ -1,0 +1,11 @@
+{
+
+    "MODIS": {
+      "EMODIS": 4700,
+      "MODIS_MOD09CMG_V6": 10544,
+      "MODIS_MOD09GA_V6": 10545,
+      "MODIS_MOD09GQ_V6": 10546,
+      "MODIS_MYD09GQ_V6": 10551
+    }
+
+}
