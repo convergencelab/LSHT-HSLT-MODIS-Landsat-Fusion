@@ -29,6 +29,8 @@ from landsatxplore.earthexplorer import EarthExplorer
 from EE_api_extension import EarthExplorerExtended
 import os
 import util
+from datetime import date, timedelta
+import numpy as np
 
 ### initialize landsatxplore ###
 try:
@@ -49,7 +51,15 @@ iter = lat_lon.iterrows()
 ### Params ###
 Datasets = ("LANDSAT_8_C1", "MODIS_MOD09GA_V6")
 OUTPUT_DIR = "C:/Users/Noah Barrett/Desktop/School/Research 2020/data"
-TIME_FRAME = ('2000-01-01', '2020-01-01')
+TIME_FRAME = [
+              '2013-04-23',
+              '2020-01-01'
+              ]
+
+### convert to datetime obj ###
+TIME_FRAME = [date.fromisoformat(t) for t in TIME_FRAME]
+TOTAL_DAYS = np.abs((TIME_FRAME[0] - TIME_FRAME[1]).days)
+CUR_DATE = TIME_FRAME[0]
 
 ### SEARCHING EarthExplorer ###
 # Goal: find matching scenes for both data sets
@@ -60,32 +70,43 @@ while True:
     lat = location.latitude
     lon = location.longitude
 
-    L_scenes, M_scenes = EEE.GET_MODIS_LANDSAT_PAIR(datasets=Datasets,
-                                                    latitude=lat,
-                                                    longitude=lon,
-                                                    start_date=TIME_FRAME[0],
-                                                    end_date=TIME_FRAME[1],
-                                                    max_cloud_cover=10)
+    scenes = EEE.GET_MODIS_LANDSAT_PAIRS(datasets=Datasets,
+                                        latitude=lat,
+                                        longitude=lon,
+                                        start_date=str(TIME_FRAME[0]),
+                                        end_date=str(TIME_FRAME[1]),
+                                        max_cloud_cover=10)[0]
+    if not len(scenes):
+        print("No scenes found for {} in {} and {}".format(location.country, Datasets[0], Datasets[1]))
 
-
-    if not len(L_scenes):
-        print("No scenes found for {} in {}".format(location.country, Datasets[0]))
-    if not len(M_scenes):
-        print("No scenes found for {} in {}".format(location.country, Datasets[1]))
     else:
-        print('{} scenes  found for {},and {} for {} in {}.'.format(len(L_scenes), Datasets[0], len(M_scenes), Datasets[1], location.country))
+        print('{} scenes found for {} and {} in {}.'.format(len(scenes), Datasets[0], Datasets[1], location.country))
+
+        ### Download ###
+        try:
+            os.mkdir(os.path.join(OUTPUT_DIR + "/landsat", location.country))
+            os.mkdir(os.path.join(OUTPUT_DIR + "/MODIS", location.country))
+        except FileExistsError:
+            pass
+        L_dir = os.path.join(OUTPUT_DIR + "/landsat", location.country)
+        M_dir = os.path.join(OUTPUT_DIR + "/MODIS", location.country)
+
+        for scene in scenes:
+
+            EEE.generic_download(Datasets[1], scene[1], M_dir)
+            EEE.generic_download(Datasets[0], scene[0], L_dir)
+
+
+            # break after first iter for now...
+            break
+        # break after first iter for now...
         break
 
 
 
 
-### Download ###
-L_dir = os.path.join(OUTPUT_DIR+"/landsat", location.country)
-M_dir = os.path.join(OUTPUT_DIR+"/MODIS", location.country)
-"""
-Use LE download function to download scenes for Landsat
 
-Library restricts to the download of landsat content
-"""
+
+
 
 api.logout()

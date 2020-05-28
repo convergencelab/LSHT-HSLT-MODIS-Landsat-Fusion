@@ -22,12 +22,16 @@ from landsatxplore.earthexplorer import EarthExplorer, EE_URL, EE_LOGIN_URL, EE_
 from landsatxplore.util import is_product_id
 import util
 import os
+from tqdm import tqdm
 
 ### GET Dataset MetaData ###
 TO_ADD = [
     'MODIS'
 ]
-ALL_DS = util.load_json(os.path.join(os.path.dirname(os.getcwd()) + r"/assets/Datasets.json"))
+try:
+    ALL_DS = util.load_json(os.path.join(os.path.dirname(os.getcwd()) + r"/assets/Datasets.json"))
+except FileNotFoundError:
+    ALL_DS = util.load_json(os.path.join(os.path.dirname(os.getcwd()) + r"/super-res/LSHT-HSLT-MODIS-Landsat-Fusion/assets/Datasets.json"))
 DS = {}
 for ds in TO_ADD:
     DS.update(ALL_DS[ds])
@@ -35,9 +39,10 @@ for ds in TO_ADD:
 class EarthExplorerExtended(EarthExplorer):
     def __init__(self, username, password):
         super(EarthExplorerExtended, self).__init__(username, password)
-        self._EE_FOLDER = EE_FOLDER.update(DS)
+        EE_FOLDER.update(DS)
+        self._EE_FOLDER = EE_FOLDER
 
-    def generic_download(self, data_set, scene, output_dir):
+    def generic_download(self, data_set, scene, output_dir, chunk_size=1024):
         """
         wrap around EE download to allow for
         :param data_set:string name of data set being downloaded
@@ -47,15 +52,20 @@ class EarthExplorerExtended(EarthExplorer):
         """
 
         ### LANDSAT DOWNLOAD ###
-        if is_product_id(scene['entityID']):
-            filename = self.download(scene['entityID'], output_dir)
+        if is_product_id(scene['displayId']):
+            filename = self.download(scene['displayId'], output_dir)
         ### NON-LANDSAT ###
         else:
-            scene_id = self.api.lookup(data_set, [scene['entityID']], inverse=True)[0]
+            print("**********", self.api.lookup(data_set, [scene['displayId']], inverse=True))
+            scene_id = self.api.lookup(data_set, [scene['displayId']], inverse=True)[0]
             url = EE_DOWNLOAD_URL.format(folder=self._EE_FOLDER[data_set], sid=scene_id)
             filename = self._download(url, output_dir)
 
-    def GET_MODIS_LANDSAT_PAIR(self, datasets, latitude, longitude, start_date, end_date, max_cloud_cover):
+
+        return filename
+
+
+    def GET_MODIS_LANDSAT_PAIRS(self, datasets, latitude, longitude, start_date, end_date, max_cloud_cover):
         """
         Given modis landsat datasets and required search info, find pairs of data
         :param datasets: tuple of Landsat, modis
@@ -64,7 +74,7 @@ class EarthExplorerExtended(EarthExplorer):
         :param start_date: Datetime
         :param end_date: Datetime
         :param max_cloud_cover: int (0-100)
-        :return:
+        :return: scenes: this will be a list of tuples, each tuple is a matching landsat, modis scene pair
         """
         ### Search for Landsat products ###
         Landsat_scenes = self.api.search(
@@ -73,17 +83,33 @@ class EarthExplorerExtended(EarthExplorer):
             longitude=longitude,
             start_date=start_date,
             end_date=end_date,
-            max_cloud_cover=max_cloud_cover)
+            max_cloud_cover=max_cloud_cover,
+            max_results=1000)
+
+        # the scenes will be ordered oldest -> most recent
+        START_DATE = Landsat_scenes[0]['acquisitionDate']
+        END_DATE = Landsat_scenes[-1]['acquisitionDate']
 
         ### Search for MODIS products ###
         MODIS_scenes = self.api.search(
             dataset=datasets[1],
             latitude=latitude,
             longitude=longitude,
-            start_date=start_date,
+            start_date=START_DATE,
             end_date=end_date,
-            max_cloud_cover=max_cloud_cover)
+            max_cloud_cover=max_cloud_cover,
+            max_results=1000)
 
-        return Landsat_scenes, MODIS_scenes
+        # make dict so we can access with dates
+        Landsat_scenes = {scene['acquisitionDate']: scene for scene in Landsat_scenes}
+        MODIS_scenes = {scene['acquisitionDate']: scene for scene in MODIS_scenes}
+
+        ### GET MATCHING DATES ###
+        keys = set(MODIS_scenes.keys()).intersection(Landsat_scenes.keys())
+
+        ### generate tuple pairs, landsat, modis ###
+        scenes = [(Landsat_scenes[date], MODIS_scenes[date]) for date in keys]
+
+        return scenes, END_DATE
 
 
