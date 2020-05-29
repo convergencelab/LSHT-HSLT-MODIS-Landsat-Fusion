@@ -2,6 +2,7 @@
 Author: Noah Barrett
 Date: 2020-05-29
 keeping track of findings:
+
 """
 import util
 import visualize

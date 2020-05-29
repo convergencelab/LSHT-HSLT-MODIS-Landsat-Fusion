@@ -33,8 +33,8 @@ from datetime import date, timedelta
 import numpy as np
 
 
-Username = util.USERNAME
-Password = util.PASSWORD
+username = util.USERNAME
+password = util.PASSWORD
 OUTPUT_DIR = util.OUTPUT_DIR
 
 ### initialize landsatxplore ###
@@ -89,16 +89,18 @@ while True:
         L_dir = os.path.join(OUTPUT_DIR + "/landsat", location.country)
         M_dir = os.path.join(OUTPUT_DIR + "/MODIS", location.country)
 
-        #for scene in scenes:
+        for scene in scenes:
 
-           # EEE.generic_download(Datasets[1], scene[1], M_dir)
-            #EEE.generic_download(Datasets[0], scene[0], L_dir)
+            EEE.generic_download(Datasets[1], scene[1], M_dir)
+            EEE.generic_download(Datasets[0], scene[0], L_dir)
 
 
             # break after first iter for now...
            # break
-        # break after first iter for now...
-        break
+
+    # break after first iter for now...
+    # this download will still be on the range of 20-25 gb due to the size of landsat images
+    break
 
 
 #api.logout()
