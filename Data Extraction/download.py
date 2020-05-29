@@ -94,13 +94,6 @@ while True:
             EEE.generic_download(Datasets[1], scene[1], M_dir)
             EEE.generic_download(Datasets[0], scene[0], L_dir)
 
-
-            # break after first iter for now...
-           # break
-
     # break after first iter for now...
     # this download will still be on the range of 20-25 gb due to the size of landsat images
     break
-
-
-#api.logout()

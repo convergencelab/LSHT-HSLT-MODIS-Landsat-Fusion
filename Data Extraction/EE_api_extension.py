@@ -66,12 +66,6 @@ class EarthExplorerExtended(EarthExplorer):
         ### NON-LANDSAT ###
         else:
             filename = self.download(scene['displayId'], output_dir, data_set=data_set)
-            #print("**********", self.logged_in())
-            #scene_id = self.api.lookup(data_set, [scene['displayId']], inverse=True)[0]
-            #url = EE_DOWNLOAD_URL.format(folder=self._EE_FOLDER[data_set], sid=scene_id)
-           # print("** URL", url)
-            #filename = self._download(url, output_dir)
-
 
         return filename
 
@@ -125,8 +119,6 @@ class EarthExplorerExtended(EarthExplorer):
 
 
         # make dict so we can access with dates and scene bounds
-        #Landsat_scenes = {(scene['acquisitionDate'], scene['sceneBounds']): scene for scene in Landsat_scenes}
-        #MODIS_scenes = {(scene['acquisitionDate'], scene['sceneBounds']): scene for scene in MODIS_scenes}
         Landsat_scenes = {scene['acquisitionDate']: scene for scene in Landsat_scenes}
         MODIS_scenes = {scene['acquisitionDate']: scene for scene in MODIS_scenes}
         ### GET MATCHING DATES ###
