@@ -19,10 +19,14 @@ images.
 # import requests
 import landsatxplore as le
 from landsatxplore.earthexplorer import EarthExplorer, EE_URL, EE_LOGIN_URL, EE_LOGOUT_URL, EE_DOWNLOAD_URL, EE_FOLDER
-from landsatxplore.util import is_product_id
+from landsatxplore.api import API
+from landsatxplore.exceptions import EarthExplorerError
+from landsatxplore.util import guess_dataset, is_product_id
+from datetime import date
 import util
 import os
 from tqdm import tqdm
+import re
 
 ### GET Dataset MetaData ###
 TO_ADD = [
@@ -39,8 +43,12 @@ for ds in TO_ADD:
 class EarthExplorerExtended(EarthExplorer):
     def __init__(self, username, password):
         super(EarthExplorerExtended, self).__init__(username, password)
+
+        # add extra datasets to landsatxplorer code dict
         EE_FOLDER.update(DS)
         self._EE_FOLDER = EE_FOLDER
+        self._username = username
+        self._password = password
 
     def generic_download(self, data_set, scene, output_dir, chunk_size=1024):
         """
@@ -54,18 +62,21 @@ class EarthExplorerExtended(EarthExplorer):
         ### LANDSAT DOWNLOAD ###
         if is_product_id(scene['displayId']):
             filename = self.download(scene['displayId'], output_dir)
+
         ### NON-LANDSAT ###
         else:
-            print("**********", self.api.lookup(data_set, [scene['displayId']], inverse=True))
-            scene_id = self.api.lookup(data_set, [scene['displayId']], inverse=True)[0]
-            url = EE_DOWNLOAD_URL.format(folder=self._EE_FOLDER[data_set], sid=scene_id)
-            filename = self._download(url, output_dir)
+            filename = self.download(scene['displayId'], output_dir, data_set=data_set)
+            #print("**********", self.logged_in())
+            #scene_id = self.api.lookup(data_set, [scene['displayId']], inverse=True)[0]
+            #url = EE_DOWNLOAD_URL.format(folder=self._EE_FOLDER[data_set], sid=scene_id)
+           # print("** URL", url)
+            #filename = self._download(url, output_dir)
 
 
         return filename
 
 
-    def GET_MODIS_LANDSAT_PAIRS(self, datasets, latitude, longitude, start_date, end_date, max_cloud_cover):
+    def GET_MODIS_LANDSAT_PAIRS(self, datasets, latitude, longitude, start_date, end_date, max_cloud_cover, num_pairs):
         """
         Given modis landsat datasets and required search info, find pairs of data
         :param datasets: tuple of Landsat, modis
@@ -76,19 +87,27 @@ class EarthExplorerExtended(EarthExplorer):
         :param max_cloud_cover: int (0-100)
         :return: scenes: this will be a list of tuples, each tuple is a matching landsat, modis scene pair
         """
+        total_scenes = []
+        START_DATE = start_date
+        END_DATE = end_date
+        """
+        search through given dates
+        finds matching dates and position. 
+        """
+
+        #while len(total_scenes) < num_pairs and int((date.fromisoformat(START_DATE) - date.fromisoformat(end_date)).days):
         ### Search for Landsat products ###
         Landsat_scenes = self.api.search(
             dataset=datasets[0],
             latitude=latitude,
             longitude=longitude,
-            start_date=start_date,
-            end_date=end_date,
+            start_date=START_DATE,
+            end_date=END_DATE,
             max_cloud_cover=max_cloud_cover,
             max_results=1000)
 
         # the scenes will be ordered oldest -> most recent
         START_DATE = Landsat_scenes[0]['acquisitionDate']
-        END_DATE = Landsat_scenes[-1]['acquisitionDate']
 
         ### Search for MODIS products ###
         MODIS_scenes = self.api.search(
@@ -96,20 +115,84 @@ class EarthExplorerExtended(EarthExplorer):
             latitude=latitude,
             longitude=longitude,
             start_date=START_DATE,
-            end_date=end_date,
+            end_date=END_DATE,
             max_cloud_cover=max_cloud_cover,
             max_results=1000)
 
-        # make dict so we can access with dates
+        # the scenes will be ordered oldest -> most recent
+        # next iteration starts at last found landsat date
+        START_DATE = Landsat_scenes[-1]['acquisitionDate']
+
+
+        # make dict so we can access with dates and scene bounds
+        #Landsat_scenes = {(scene['acquisitionDate'], scene['sceneBounds']): scene for scene in Landsat_scenes}
+        #MODIS_scenes = {(scene['acquisitionDate'], scene['sceneBounds']): scene for scene in MODIS_scenes}
         Landsat_scenes = {scene['acquisitionDate']: scene for scene in Landsat_scenes}
         MODIS_scenes = {scene['acquisitionDate']: scene for scene in MODIS_scenes}
-
         ### GET MATCHING DATES ###
         keys = set(MODIS_scenes.keys()).intersection(Landsat_scenes.keys())
 
         ### generate tuple pairs, landsat, modis ###
-        scenes = [(Landsat_scenes[date], MODIS_scenes[date]) for date in keys]
+        found_scenes = [(Landsat_scenes[date], MODIS_scenes[date]) for date in keys]
+        total_scenes += found_scenes
+        if len(found_scenes):
+            print("{} scenes found...".format(len(found_scenes)))
+            print("{} total scenes".format(len(total_scenes)))
+        else:
+            print("{} total scenes".format(len(total_scenes)))
 
-        return scenes, END_DATE
+        return total_scenes
+
+    def download(self, scene_id, output_dir, data_set=False):
+        """Download a Landsat scene given its identifier and an output
+        directory.
+
+        override to adjust for donwloading datasets other than landsat
+        """
+        if not data_set:
+            dataset = guess_dataset(scene_id)
+            if is_product_id(scene_id):
+                scene_id = self.api.lookup(dataset, [scene_id], inverse=True)[0]
+        else:
+            dataset = data_set
+            scene_id = self.api.lookup(data_set, [scene_id], inverse=True)[0]
+
+        url = EE_DOWNLOAD_URL.format(folder=EE_FOLDER[dataset], sid=scene_id)
+        filename = self._download(url, output_dir, dataset)
+        return filename
+
+    def _download(self, url, output_dir, dataset, chunk_size=1024):
+        """
+        override for landsatxplorer lib
+        :param url:
+        :param output_dir:
+        :param dataset:
+        :param chunk_size:
+        :return:
+        """
+        r = self.session.get(url, stream=True, allow_redirects=True)
+        if not r.ok:
+            r = self.session.get(r.url, stream=True, allow_redirects=True, auth=(self._username, self._password))
+        file_size = int(r.headers['Content-Length'])
+
+        with tqdm(total=file_size, unit_scale=True, unit='B', unit_divisor=1024) as pbar:
+            ### GET FILE NAME ###
+            if "Content-Disposition" in r.headers.keys():
+                local_filename = re.findall("filename=(.+)", r.headers["Content-Disposition"])[0]
+            else:
+                local_filename = url.split("/")[-3]
+                local_filename = self.api.lookup(dataset, local_filename)[0]
+                local_filename = local_filename + util.convert_to_extension(r.headers['content-type'])
+                print("*** FNAME", local_filename)
+
+            local_filename = os.path.join(output_dir, local_filename)
+
+            ### WRITE FILE ###
+            with open(local_filename, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        f.write(chunk)
+                        pbar.update(chunk_size)
+        return local_filename
 
 
