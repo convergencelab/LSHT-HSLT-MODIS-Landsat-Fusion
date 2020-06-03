@@ -4,12 +4,13 @@ Read tiffs as stacked rasters
 investigate scene meta data
 """
 import os
-
-
+from osgeo import gdal
 from glob import glob  # File manipulation
 import matplotlib.pyplot as plt
-import numpy as np
-import geopandas as gpd
+import rasterio
+from rasterio.plot import show, show_hist
+# import numpy as np
+# import geopandas as gpd
 import rasterio as rio
 import earthpy as et
 import earthpy.spatial as es
@@ -48,38 +49,131 @@ def plot_spatial_footprints(data):
     plt.show()
 
 
+def plot_raster_pair():
+    """
+    view landsat modis pair
+    :param im1: str path
+    :param im2:  str path
+    :return:
+    """
+
+    dir = os.environ['LS_MD_PAIRS']
+    pairs = util.get_landsat_modis_pairs(dir)
+    fig3, ax3 = plt.subplots(2, 2)
+
+    with rio.open(glob(pairs[0][0] + "\*")[0]) as l_src:
+        img1 = l_src.read()
+
+        ax3[0, 0] = ep.plot_rgb(img1,
+                    rgb=[3, 2, 1],
+                    title="Landsat RGB Image\n Linear Stretch Applied",
+                    stretch=True,
+                    str_clip=4)
+
+        ax3[0, 1]  = ep.plot_rgb(img1,
+                    rgb=[3, 2, 1],
+                    title="Landsat RGB Image",
+                    stretch=False)
 
 
+    with rio.open(glob(pairs[0][0] + "\*")[1]) as m_src:
+        img2 = m_src.read()
 
+        ax3[1, 0]  = ep.plot_rgb(img2,
+                    rgb=[3, 2, 1],
+                    title="MODIS RGB Image\n Linear Stretch Applied",
+                    stretch=True,
+                    str_clip=4)
 
+        ax3[1, 1]  = ep.plot_rgb(img2,
+                          rgb=[3, 2, 1],
+                          title="MODIS RGB Image",
+                          stretch=False)
 
+        plt.show()
 
+# plot_raster_pair()
 
-"""
-EXAMPLE OF RASTERIO USAGE
-os.chdir(os.path.join(et.io.HOME, 'earth-analytics'))
-# Get list of all pre-cropped data and sort the data
+def plot_ep_plot(imgs=None, stretch=None):
+    """
+    helper for visualization
+    :param imgs: tuple of paths to image
+    :param stretch: linear stretch bool
+    :return: None
+    """
 
-path = os.path.join("data", "cold-springs-fire", "landsat_collect",
-                    "LC080340322016072301T1-SC20180214145802", "crop")
+    if not imgs:
+        dir = os.environ['LS_MD_PAIRS']
+        pairs = util.get_landsat_modis_pairs(dir, transform=True, both_modis=True)
+        imgs = pairs[0]
 
-all_landsat_post_bands = glob(path + "/*band*.tif")
-print(all_landsat_post_bands)
-all_landsat_post_bands.sort()
+    fig4, ax4 = plt.subplots(1, 2)
+    # plot landsat
+    with rio.open(imgs[0]) as l_src:
+        img1 = l_src.read()
+        ep.plot_rgb(
+                img1,
+                rgb=(3, 2, 1),
+                figsize=(10, 10),
+                str_clip=2,
+                ax=ax4[0],
+                extent=None,
+                title="Landsat True Colour",
+                stretch=stretch,
+        )
 
-# Create an output array of all the landsat data stacked
-landsat_post_fire_path = os.path.join("data", "cold-springs-fire",
-                                      "outputs", "landsat_post_fire.tif")
+    # Plot MODIS
+    with rio.open(imgs[1]) as m_src:
+        img2 = m_src.read()
+        ep.plot_rgb(
+            img2,
+            rgb=(0, 3, 2),
+            figsize=(10, 10),
+            str_clip=2,
+            ax=ax4[1],
+            extent=None,
+            title="MODIS True Colour",
+            stretch=stretch,
+        )
 
-# This will create a new stacked raster with all bands
-land_stack, land_meta = es.stack(all_landsat_post_bands,
-                                 landsat_post_fire_path)
-# read new stack
-with rio.open(landsat_post_fire_path) as src:
-    landsat_post_fire = src.read()
+def show_affine_transform(imgs=False, stretch=True):
+    """
+     helper for visualization
+     :param imgs: tuple of paths to image
+     :param stretch: linear stretch bool
+     :return: None
+    """
+    if not imgs:
+        dir = os.environ['LS_MD_PAIRS']
+        pairs = util.get_landsat_modis_pairs(dir, transform=True, both_modis=True)
+        imgs = pairs[0]
 
-ep.plot_rgb(landsat_post_fire,
-            rgb=[3, 2, 1],
-            title="RGB Composite Image\n Post Fire Landsat Data")
-plt.show()
-"""
+    fig5, ax5 = plt.subplots(1, 2)
+    # Plot MODIS untransformed
+    with rio.open(pairs[0][0]) as m_src:
+        img2 = m_src.read()
+        ep.plot_rgb(
+            img2,
+            rgb=(0, 3, 2),
+            figsize=(10, 10),
+            str_clip=2,
+            ax=ax5[0],
+            extent=None,
+            title="MODIS Untransformed",
+            stretch=stretch,
+        )
+
+    with rio.open(pairs[0][1]) as m_src:
+        img2 = m_src.read()
+        ep.plot_rgb(
+            img2,
+            rgb=(0, 3, 2),
+            figsize=(10, 10),
+            str_clip=2,
+            ax=ax5[1],
+            extent=None,
+            title="MODIS transformed",
+            stretch=stretch,
+        )
+
+    plt.show()

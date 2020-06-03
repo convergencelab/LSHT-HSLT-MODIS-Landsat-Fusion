@@ -70,7 +70,7 @@ class EarthExplorerExtended(EarthExplorer):
         return filename
 
 
-    def GET_MODIS_LANDSAT_PAIRS(self, datasets, latitude, longitude, start_date, end_date, max_cloud_cover, num_pairs):
+    def GET_MODIS_LANDSAT_PAIRS(self, datasets, latitude, longitude, start_date, end_date, max_cloud_cover):
         """
         Given modis landsat datasets and required search info, find pairs of data
         :param datasets: tuple of Landsat, modis

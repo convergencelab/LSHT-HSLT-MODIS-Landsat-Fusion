@@ -32,68 +32,80 @@ import util
 from datetime import date, timedelta
 import numpy as np
 
+class downloader():
+    def __init__(self, username, password, OUTPUT_DIR):
 
-username = util.USERNAME
-password = util.PASSWORD
-OUTPUT_DIR = util.OUTPUT_DIR
+        self.username = username
+        self.password = password
+        self.OUTPUT_DIR = OUTPUT_DIR
+        self.DOWNLOAD_LIMIT = 2
+        self.Datasets = ("LANDSAT_8_C1", "MODIS_MOD09CMG_V6")
 
-### initialize landsatxplore ###
-EEE = EarthExplorerExtended(username=username, password=password)
+        ### Time ###
+        self._TIME_FRAME = [
+                      '2013-04-23',
+                      '2020-01-01'
+                      ]
 
-### GET LATS-LONS ###
-lat_lon = util.load_world_lat_lon(OUTPUT_DIR + r"\world_lat_lon\world_country_and_usa_states_latitude_and_longitude_values.csv")
-ll_iter = lat_lon.iterrows()
+        self.TIME_FRAME = [date.fromisoformat(t) for t in self._TIME_FRAME]
+        self.TOTAL_DAYS = np.abs((self.TIME_FRAME[0] - self.TIME_FRAME[1]).days)
+        self.CUR_DATE = self.TIME_FRAME[0]
 
-### Params ###
-Datasets = ("LANDSAT_8_C1", "MODIS_MOD09GA_V6")
+        ### initialize landsatxplore ###
+        self.EEE = EarthExplorerExtended(username=self.username, password=self.password)
 
-TIME_FRAME = [
-              '2013-04-23',
-              '2020-01-01'
-              ]
+        ### GET LATS-LONS ###
+        self.lat_lon = util.load_world_lat_lon(OUTPUT_DIR + r"\world_lat_lon\world_country_and_usa_states_latitude_and_longitude_values.csv")
+        self.ll_iter = self.lat_lon.iterrows()
 
-### convert to datetime obj ###
-TIME_FRAME = [date.fromisoformat(t) for t in TIME_FRAME]
-TOTAL_DAYS = np.abs((TIME_FRAME[0] - TIME_FRAME[1]).days)
-CUR_DATE = TIME_FRAME[0]
+    def download_all(self):
+        """
+        downloads all scenes found until download limit is met.
+        :return: None
+        """
+        ### SEARCHING EarthExplorer ###
+        # Goal: find matching scenes for both data sets
+        while True:
+            # Loop to find lats/lons that will work
+            # breaks when finds first match
+            index, location = next(self.ll_iter)
+            lat = location.latitude
+            lon = location.longitude
+            print("Searching for items at {}, {}".format(lat, lon))
+            scenes = self.EEE.GET_MODIS_LANDSAT_PAIRS(datasets=self.Datasets,
+                                                latitude=lat,
+                                                longitude=lon,
+                                                start_date=str(self.TIME_FRAME[0]),
+                                                end_date=str(self.TIME_FRAME[1]),
+                                                max_cloud_cover=10
+                                                 )
+            if not len(scenes):
+                print("No scenes found for {} in {} and {}".format(location.country, self.Datasets[0], self.Datasets[1]))
 
-### SEARCHING EarthExplorer ###
-# Goal: find matching scenes for both data sets
-while True:
-    # Loop to find lats/lons that will work
-    # breaks when finds first match
-    index, location = next(ll_iter)
-    lat = location.latitude
-    lon = location.longitude
-    print("Searching for items at {}, {}".format(lat, lon))
-    scenes = EEE.GET_MODIS_LANDSAT_PAIRS(datasets=Datasets,
-                                        latitude=lat,
-                                        longitude=lon,
-                                        start_date=str(TIME_FRAME[0]),
-                                        end_date=str(TIME_FRAME[1]),
-                                        max_cloud_cover=10,
-                                         num_pairs=2
-                                         )
-    if not len(scenes):
-        print("No scenes found for {} in {} and {}".format(location.country, Datasets[0], Datasets[1]))
+            else:
+                print('{} scenes found for {} and {} in {}.'.format(len(scenes), self.Datasets[0], self.Datasets[1], location.country))
+                util.write_to_json(scenes, self.Datasets, self.OUTPUT_DIR)
+                ### Download ###
+                try:
+                    os.mkdir(os.path.join(self.OUTPUT_DIR + "/landsat", location.country))
+                    os.mkdir(os.path.join(self.OUTPUT_DIR + "/MODIS", location.country))
+                except FileExistsError:
+                    pass
+                L_dir = os.path.join(self.OUTPUT_DIR + "/landsat", location.country)
+                M_dir = os.path.join(self.OUTPUT_DIR + "/MODIS", location.country)
 
-    else:
-        print('{} scenes found for {} and {} in {}.'.format(len(scenes), Datasets[0], Datasets[1], location.country))
-        util.write_to_json(scenes, Datasets, OUTPUT_DIR)
-        ### Download ###
-        try:
-            os.mkdir(os.path.join(OUTPUT_DIR + "/landsat", location.country))
-            os.mkdir(os.path.join(OUTPUT_DIR + "/MODIS", location.country))
-        except FileExistsError:
-            pass
-        L_dir = os.path.join(OUTPUT_DIR + "/landsat", location.country)
-        M_dir = os.path.join(OUTPUT_DIR + "/MODIS", location.country)
+                for i, scene in enumerate(scenes):
 
-        for scene in scenes:
+                    self.EEE.generic_download(self.Datasets[1], scene[1], M_dir)
+                    self.EEE.generic_download(self.Datasets[0], scene[0], L_dir)
+                    # break after reaching download limit
+                    if i == self.DOWNLOAD_LIMIT:
+                        break
+            # break after first iter for now...
+            # this download will still be on the range of 20-25 gb due to the size of landsat images
+            break
 
-            EEE.generic_download(Datasets[1], scene[1], M_dir)
-            EEE.generic_download(Datasets[0], scene[0], L_dir)
+        # return dirs where files were downloaded
+        return L_dir, M_dir
 
-    # break after first iter for now...
-    # this download will still be on the range of 20-25 gb due to the size of landsat images
-    break
+

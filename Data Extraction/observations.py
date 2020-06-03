@@ -7,6 +7,8 @@ keeping track of findings:
 import util
 import visualize
 import numpy as np
+import os
+import glob
 """
 section 1: downloading data
 
@@ -18,12 +20,13 @@ requirements of date and location in a json file.
 
 we can load this metadata using util. 
 """
-polygons = util.get_spatial_polygons()
-print("CHECK 1: location")
-for landsat_modis_pair in polygons:
-    print(landsat_modis_pair[0].intersects(landsat_modis_pair[1]))
+def CHECK_1_location():
+    polygons = util.get_spatial_polygons()
+    print("CHECK 1: location")
+    for landsat_modis_pair in polygons:
+        print(landsat_modis_pair[0].intersects(landsat_modis_pair[1]))
 
-visualize.plot_spatial_footprints(polygons)
+    visualize.plot_spatial_footprints(polygons)
 
 """
 This shows that all polygons intersect,
@@ -35,11 +38,12 @@ between pairs
 
 next we check to see that the dates are allgining up for all pairs: 
 """
-dates = np.array(util.get_dates())
-landsat = dates.T[0]
-modis = dates.T[1]
-print("CHECK 2: dates")
-print(landsat == modis)
+def CHECK_2_dates():
+    dates = np.array(util.get_dates())
+    landsat = dates.T[0]
+    modis = dates.T[1]
+    print("CHECK 2: dates")
+    print(landsat == modis)
 
 """
 dates all line up as well, so we can confirm that the scraper succesfully collected
@@ -53,11 +57,12 @@ so for this we will do the same thing. Check landsat quality of cloud cover and 
 occurence for modis (same clouds will be present for both images if they were taking in relatively 
 same time period
 """
-print("CHECK 3: cloud indexes")
-landsat_cloud_indexes = util.get_cloud_indexes()
-print(landsat_cloud_indexes)
-### plot ###
-visualize.plot_cloud_cover(landsat_cloud_indexes)
+def CHECK_3_cloud_indexes():
+    print("CHECK 3: cloud indexes")
+    landsat_cloud_indexes = util.get_cloud_indexes()
+    print(landsat_cloud_indexes)
+    ### plot ###
+    visualize.plot_cloud_cover(landsat_cloud_indexes)
 
 """
 we can see that it has a very good quality for cloud cover (as indicated)
@@ -74,3 +79,34 @@ To wrap up this section:
         -> this project will not be heavily focused on ensuring extremely low cloud coverage. 
 
 """
+"""
+section 2: understanding the data
+
+Landsat True color RGB bands are 4, 3, 2
+Modis True colour RGB bands are 1, 4, 3 
+"""
+# below we can see the true color representations of both landsat and modis
+# pair samples
+def CHECK_4_Landsat_Modis_pairs():
+
+    # plot true-color non-stretched samples:
+    visualize.plot_ep_plot()
+
+    # plot true-color streched samples:
+    visualize.plot_ep_plot(stretch=True)
+
+    # We must now consider our samples spatially
+    # it is very unlikely that any of the pairs will be matched up perfectly
+    # in terms of coordinates.
+    # We must perform an affine transform on one image to match the other
+    # because modis images cover so much more land we will be cropping them.
+    # The modis images will be trnasformed based on the landsat crs
+    # (coordinate reference system) because of the need to crop it afterwards.
+
+    ### affine transform on modis image ###
+    visualize.show_affine_transform()
+
+
+
+
+
