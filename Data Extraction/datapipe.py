@@ -14,6 +14,7 @@ Consists of 5 parts:
 import util
 import download
 import os
+import glob
 
 
 def downloading():
@@ -76,31 +77,38 @@ def clip(dir):
 
 def wrap(new_download=True):
     if new_download:
-        landsat_dir, modis_dir = downloading()
+        dirs = downloading()
     else:
         # latest_country = input("latest country: " )
         latest_country = "Andorra"
-        landsat_dir = util.OUTPUT_DIR + "/landsat/"+ latest_country
-        modis_dir = util.OUTPUT_DIR + "/MODIS/" + latest_country
+        landsat_dir = glob.glob(util.OUTPUT_DIR + "/landsat/*")
+        modis_dir =  glob.glob(util.OUTPUT_DIR + "/MODIS/*")
+        dirs = [[l, m] for l, m in zip(landsat_dir, modis_dir)]
     print("download complete")
     os.system("PAUSE")
-    unzip(landsat_dir, modis_dir)
-    print("unzip complete")
-    os.system("PAUSE")
-    dir = sort(landsat_dir, modis_dir)
-    print("sort complete")
-    os.system("PAUSE")
-    dir = affine_transform(dir)
-    print("transform complete")
-    os.system("PAUSE")
-    print("clip complete")
-    clip(dir)
+    
+    for landsat_dir, modis_dir in dirs:
+        unzip(landsat_dir, modis_dir)
+        print("unzip complete")
+        os.system("PAUSE")
+        dir = sort(landsat_dir, modis_dir)
+        print("sort complete")
+        os.system("PAUSE")
+        dir = affine_transform(dir)
+        print("transform complete")
+        os.system("PAUSE")
+        print("clip complete")
+        clip(dir)
 
 
 
 def wrap_no_io():
-    landsat_dir, modis_dir = downloading()
-    unzip(landsat_dir, modis_dir)
-    dir = sort(landsat_dir, modis_dir)
-    dir = affine_transform(dir)
-    clip(dir)
+    dirs = downloading()
+
+    for landsat_dir, modis_dir in dirs:
+        unzip(landsat_dir, modis_dir)
+        dir = sort(landsat_dir, modis_dir)
+        dir = affine_transform(dir)
+        clip(dir)
+
+wrap_no_io()

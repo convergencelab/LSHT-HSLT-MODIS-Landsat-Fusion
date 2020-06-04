@@ -65,15 +65,18 @@ class downloader():
         """
         ### SEARCHING EarthExplorer ###
         # Goal: find matching scenes for both data sets
-        while True:
-            if os.path.isdir(os.path.join(self.OUTPUT_DIR + "/landsat", location.country)) and \
-                os.path.isdir(os.path.join(self.OUTPUT_DIR + "/MODIS", location.country)):
-                    continue
+        dirs = []
+        for index, location in self.ll_iter:
             # Loop to find lats/lons that will work
             # breaks when finds first match
-            index, location = next(self.ll_iter)
+
             lat = location.latitude
             lon = location.longitude
+            # if already exists move on to next country
+            if os.path.isdir(os.path.join(self.OUTPUT_DIR + "/landsat", location.country)) and \
+                    os.path.isdir(os.path.join(self.OUTPUT_DIR + "/MODIS", location.country)):
+                continue
+
             print("Searching for items at {}, {}".format(lat, lon))
             scenes = self.EEE.GET_MODIS_LANDSAT_PAIRS(datasets=self.Datasets,
                                                 latitude=lat,
@@ -131,4 +134,7 @@ class downloader():
                     continue
                 else:
                     # return dirs where files were downloaded
-                    return L_dir, M_dir
+                    return dirs
+
+            dirs.append((L_dir, M_dir))
+        return dirs
