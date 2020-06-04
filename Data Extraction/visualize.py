@@ -9,13 +9,12 @@ from glob import glob  # File manipulation
 import matplotlib.pyplot as plt
 import rasterio
 from rasterio.plot import show, show_hist
-# import numpy as np
+import numpy as np
 # import geopandas as gpd
 import rasterio as rio
 import earthpy as et
 import earthpy.spatial as es
 import earthpy.plot as ep
-
 import util
 
 def plot_cloud_cover(data):
@@ -47,7 +46,28 @@ def plot_spatial_footprints(data):
     fig2.suptitle('coordinate overlap display')
     plt.legend()
     plt.show()
+def normalize(array):
+    """Normalizes numpy arrays into scale 0.0 - 1.0"""
+    array_min, array_max = array.min(), array.max()
+    return ((array - array_min) / (array_max - array_min))
 
+def plot_rgb(fpath, rgb):
+
+    raster = rio.open(fpath)
+    red = raster.read(rgb[0])
+    green = raster.read(rgb[1])
+    blue = raster.read(rgb[2])
+
+    # Normalize the bands
+    redn = normalize(red)
+    greenn = normalize(green)
+    bluen = normalize(blue)
+
+    # Create RGB natural color composite
+    rgb = np.dstack((redn, greenn, bluen))
+
+    # Let's see how our color composite looks like
+    return plt.imshow(rgb)
 
 def plot_raster_pair():
     """
@@ -177,3 +197,17 @@ def show_affine_transform(imgs=False, stretch=True):
         )
 
     plt.show()
+
+
+def plot_clipped_modis_lsat():
+    pairs = util.get_landsat_modis_pairs_early(
+        util.OUTPUT_DIR+"/landsat_modis_pairs")
+
+    fig6, ax6 = plt.subplots(1, 2)
+    ax6[0] = plot_rgb(pairs[0][0],
+                      rgb=[3, 2, 1],
+                       title="Landsat")
+
+    ax6[1] = plot_rgb(pairs[0][1],
+             rgb=[1, 4, 3],
+             title="MODIS transformed")

@@ -13,5 +13,12 @@ import earthpy.plot as ep
 from osgeo import gdal
 import numpy as np
 import visualize
+from shapely.geometry import mapping
+from shapely.wkt import loads
+import rioxarray
 
+import os
 
+print("hahaha")
+os.system("PAUSE")
+print("cool")

@@ -39,7 +39,7 @@ class downloader():
         self.password = password
         self.OUTPUT_DIR = OUTPUT_DIR
         self.DOWNLOAD_LIMIT = 2
-        self.Datasets = ("LANDSAT_8_C1", "MODIS_MOD09CMG_V6")
+        self.Datasets = ("LANDSAT_8_C1", "MODIS_MOD09GA_V6")
 
         ### Time ###
         self._TIME_FRAME = [
@@ -58,7 +58,7 @@ class downloader():
         self.lat_lon = util.load_world_lat_lon(OUTPUT_DIR + r"\world_lat_lon\world_country_and_usa_states_latitude_and_longitude_values.csv")
         self.ll_iter = self.lat_lon.iterrows()
 
-    def download_all(self):
+    def download_all(self, continue_toggle=False):
         """
         downloads all scenes found until download limit is met.
         :return: None
@@ -66,6 +66,9 @@ class downloader():
         ### SEARCHING EarthExplorer ###
         # Goal: find matching scenes for both data sets
         while True:
+            if os.path.isdir(os.path.join(self.OUTPUT_DIR + "/landsat", location.country)) and \
+                os.path.isdir(os.path.join(self.OUTPUT_DIR + "/MODIS", location.country)):
+                    continue
             # Loop to find lats/lons that will work
             # breaks when finds first match
             index, location = next(self.ll_iter)
@@ -84,28 +87,52 @@ class downloader():
 
             else:
                 print('{} scenes found for {} and {} in {}.'.format(len(scenes), self.Datasets[0], self.Datasets[1], location.country))
-                util.write_to_json(scenes, self.Datasets, self.OUTPUT_DIR)
+
                 ### Download ###
                 try:
                     os.mkdir(os.path.join(self.OUTPUT_DIR + "/landsat", location.country))
                     os.mkdir(os.path.join(self.OUTPUT_DIR + "/MODIS", location.country))
+
+                except FileNotFoundError:
+                    os.mkdir(self.OUTPUT_DIR + "/landsat")
+                    os.mkdir(self.OUTPUT_DIR + "/MODIS")
+                    os.mkdir(os.path.join(self.OUTPUT_DIR + "/landsat", location.country))
+                    os.mkdir(os.path.join(self.OUTPUT_DIR + "/MODIS", location.country))
+
                 except FileExistsError:
                     pass
+
                 L_dir = os.path.join(self.OUTPUT_DIR + "/landsat", location.country)
                 M_dir = os.path.join(self.OUTPUT_DIR + "/MODIS", location.country)
-
+                written_scenes = []
                 for i, scene in enumerate(scenes):
-
-                    self.EEE.generic_download(self.Datasets[1], scene[1], M_dir)
+                    # download modis and landsat data
                     self.EEE.generic_download(self.Datasets[0], scene[0], L_dir)
+                    self.EEE.generic_download(self.Datasets[1], scene[1], M_dir)
+                    written_scenes.append(written_scenes)
                     # break after reaching download limit
-                    if i == self.DOWNLOAD_LIMIT:
+                    if i == self.DOWNLOAD_LIMIT -1:
                         break
+
+            util.write_to_json(scenes, self.Datasets, self.OUTPUT_DIR)
             # break after first iter for now...
             # this download will still be on the range of 20-25 gb due to the size of landsat images
-            break
+            # break
 
-        # return dirs where files were downloaded
-        return L_dir, M_dir
+            # toggle
+            if continue_toggle:
+                while True:
+                    breaker = input("Continue downloading? (Y/N): ").lower()
+                    if breaker == "y" or breaker == "n":
+                        break
+                    else:
+                        print("y or n")
+                if breaker == "y":
+                    continue
+                else:
+                    # return dirs where files were downloaded
+                    return L_dir, M_dir
+
+
 
 

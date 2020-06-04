@@ -13,6 +13,9 @@ import shutil
 import glob
 from osgeo import gdal
 import rasterio as rio
+from shapely.geometry import mapping
+from shapely.wkt import loads
+import rioxarray
 
 
 ### get variables ##
@@ -79,7 +82,6 @@ def write_to_json(scenes, datasets, filepath):
     """
     try:
         os.mkdir(os.path.join(filepath, "metadata"))
-
     except:
         pass
     filepath = os.path.join(filepath, "metadata")
@@ -129,6 +131,41 @@ def get_spatial_polygons():
 
         spatial_foots.append((lsat, modis))
     return spatial_foots
+def get_polygon(fpath):
+    """
+    get polygon for specific path
+    :param fpath: path of raster
+    :return: polygon
+    """
+    ### load meta-data ###
+    data_path = os.path.join(OUTPUT_DIR, "metadata/both_meta.json")
+    data = load_json(data_path)
+
+    raster = rio.open(fpath)
+    ind = os.path.basename(fpath)[0]
+    conv = {'L':0,'M':1 }
+    try:
+        index = conv[ind]
+    except KeyError:
+        raise Exception("Invalid file")
+
+    if ind == "L":
+        id = os.path.basename(fpath)[:40]
+
+    elif ind == "M":
+        id = os.path.basename(fpath)[:27]
+
+    for val in list(data.values()):
+        if id == val[index]["displayId"]:
+            coords = val[index]['spatialFootprint']['coordinates']
+            poly = [Point(v) for v in coords[0]]
+            poly = Polygon(poly)
+            return poly
+
+
+
+
+
 
 def get_dates():
     """helper function for observations"""
@@ -360,7 +397,6 @@ def build_dataset(output_dir, l_dir, m_dir, stacked_bands):
     """
     # get band pairs
     pairs = get_surface_reflectance_pairs(l_dir, m_dir)
-    print(len(pairs))
     for i, pair in enumerate(pairs):
         l, m = pair
         # dir for pairs
@@ -381,6 +417,13 @@ def build_dataset(output_dir, l_dir, m_dir, stacked_bands):
     os.environ['LS_MD_PAIRS'] = output_dir
 
     return output_dir
+def get_landsat_modis_pairs_early(path):
+    pairs = []
+    for pair in os.listdir(path):
+        p = os.path.join(path, pair)
+        pair = glob.glob(p + "\*")
+        pairs.append(pair)
+    return pairs
 
 def get_landsat_modis_pairs(dir, transform=False, both_modis=False):
     """
@@ -408,7 +451,7 @@ def get_landsat_modis_pairs(dir, transform=False, both_modis=False):
             if both_modis:
                 pair = glob.glob(p+"\M*")
             else:
-                pair = [glob.glob(p+"\L*")[0].format(specifier),
+                pair = [glob.glob(p+"\L*")[0],
                         glob.glob(p+"\*_transformed*")[0]]
             pairs.append(pair)
 
@@ -423,7 +466,7 @@ def reproject_on_tif(inpath, outpath, to_copy_from_path):
     :param inpath:dir for input
     :param outpath:dir for output
     :param to_copy_from_path:path for raster to copy from
-    :return:None
+    :return: outpath
     """
     new_src = rio.open(to_copy_from_path)
     dst_crs = new_src.crs
@@ -451,3 +494,26 @@ def reproject_on_tif(inpath, outpath, to_copy_from_path):
                     dst_transform=transform,
                     dst_crs=dst_crs,
                     resampling=rio.warp.Resampling.bilinear)
+
+    os.remove(inpath)
+    return outpath
+
+def clip_tif_wrt_tif(inpath, outpath, to_copy_from_path):
+    """
+
+    :param inpath: path to tif that is to be clipped
+    :param outpath: output path for tif
+    :param to_copy_from_path: tif to copy from
+    :return: outpath
+    """
+
+
+    poly = get_polygon(to_copy_from_path).wkt
+    geom = mapping(loads(poly))
+
+    rds = rioxarray.open_rasterio(inpath, parse_coordinates=False)
+    masked = rds.rio.clip([geom], "EPSG:4326", drop=True)
+    masked.rio.to_raster(outpath)
+    rds.close()
+    os.remove(inpath)
+    return outpath
