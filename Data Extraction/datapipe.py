@@ -14,7 +14,6 @@ Consists of 5 parts:
 import util
 import download
 import os
-import glob
 
 
 def downloading():
@@ -97,7 +96,7 @@ def wrap(new_download=True):
     print("clip complete")
     clip(dir)
 
-wrap(new_download=False)
+
 
 def wrap_no_io():
     landsat_dir, modis_dir = downloading()

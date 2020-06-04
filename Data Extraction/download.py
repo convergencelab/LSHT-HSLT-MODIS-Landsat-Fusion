@@ -132,7 +132,3 @@ class downloader():
                 else:
                     # return dirs where files were downloaded
                     return L_dir, M_dir
-
-
-
-
