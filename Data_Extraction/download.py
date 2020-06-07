@@ -38,7 +38,7 @@ class downloader():
         self.username = username
         self.password = password
         self.OUTPUT_DIR = OUTPUT_DIR
-        self.DOWNLOAD_LIMIT = 2
+        self.DOWNLOAD_LIMIT = 3
         self.Datasets = ("LANDSAT_8_C1", "MODIS_MOD09GA_V6")
 
         ### Time ###
@@ -66,12 +66,16 @@ class downloader():
         ### SEARCHING EarthExplorer ###
         # Goal: find matching scenes for both data sets
         dirs = []
+        # keep track of each scene downloaded
+        written_scenes = []
+        total_downloads = 0
+        threshold = 27
         for index, location in self.ll_iter:
             # Loop to find lats/lons that will work
             # breaks when finds first match
-
             lat = location.latitude
             lon = location.longitude
+
             # if already exists move on to next country
             if os.path.isdir(os.path.join(self.OUTPUT_DIR + "/landsat", location.country)) and \
                     os.path.isdir(os.path.join(self.OUTPUT_DIR + "/MODIS", location.country)):
@@ -107,21 +111,21 @@ class downloader():
 
                 L_dir = os.path.join(self.OUTPUT_DIR + "/landsat", location.country)
                 M_dir = os.path.join(self.OUTPUT_DIR + "/MODIS", location.country)
-                written_scenes = []
                 for i, scene in enumerate(scenes):
                     # download modis and landsat data
                     self.EEE.generic_download(self.Datasets[0], scene[0], L_dir)
                     self.EEE.generic_download(self.Datasets[1], scene[1], M_dir)
-                    written_scenes.append(written_scenes)
+                    total_downloads += 1
+                    written_scenes.append(scene)
                     # break after reaching download limit
                     if i == self.DOWNLOAD_LIMIT -1:
                         break
 
-            util.write_to_json(scenes, self.Datasets, self.OUTPUT_DIR)
-            # break after first iter for now...
-            # this download will still be on the range of 20-25 gb due to the size of landsat images
-            # break
+            dirs.append((L_dir, M_dir))
 
+            if total_downloads == threshold:
+
+                break
             # toggle
             if continue_toggle:
                 while True:
@@ -134,7 +138,17 @@ class downloader():
                     continue
                 else:
                     # return dirs where files were downloaded
-                    return dirs
+                    # write downloaded files
 
-            dirs.append((L_dir, M_dir))
-        return dirs
+                    try:
+                        util.write_to_json(written_scenes, self.Datasets, self.OUTPUT_DIR)
+                    except:
+                        print("json failed")
+                        util.save_pairs_to_text(written_scenes, self.Datasets, self.OUTPUT_DIR)
+                    return L_dir, M_dir
+
+        # write downloaded files
+
+        util.write_to_json(written_scenes, self.Datasets, self.OUTPUT_DIR)
+
+        return L_dir, M_dir

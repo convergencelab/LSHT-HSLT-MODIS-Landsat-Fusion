@@ -69,6 +69,7 @@ def plot_rgb(fpath, rgb):
     # Let's see how our color composite looks like
     return plt.imshow(rgb)
 
+
 def plot_raster_pair():
     """
     view landsat modis pair

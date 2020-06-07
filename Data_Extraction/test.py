@@ -1,7 +1,7 @@
 
 import util
 import os
-from glob import glob
+import glob
 import matplotlib.pyplot as plt
 import rasterio as rio
 from rasterio.warp import calculate_default_transform, reproject, Resampling
@@ -15,10 +15,3 @@ import numpy as np
 import visualize
 from shapely.geometry import mapping
 from shapely.wkt import loads
-import rioxarray
-
-import os
-
-print("hahaha")
-os.system("PAUSE")
-print("cool")
