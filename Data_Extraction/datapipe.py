@@ -17,7 +17,9 @@ import os
 import glob
 import numpy as np
 import rasterio as rio
-
+from rioxarray import exceptions as rio_x
+import shutil
+from tqdm import tqdm
 
 def downloading(continue_toggle=True):
     ### Part 1: download images ###
@@ -52,17 +54,18 @@ def unzip(landsat_dir, modis_dir):
     # after this function call is done organize the dir.
     util.organize_dir(modis_dir)
 
-def sort(landsat_dir, modis_dir):
+def sort(landsat_dir, modis_dir, index):
     ### Part 3: sort files into associated landsat-modis pairs ###
-    dir = util.build_dataset(output_dir=os.environ['LS_MD_PAIRS'],
+    dir, index = util.build_dataset(output_dir=os.environ['LS_MD_PAIRS'],
                        l_dir=landsat_dir,
                        m_dir=modis_dir,
-                       stacked_bands=[1, 2, 3, 4, 5, 6, 7])
-    return dir
+                       stacked_bands=[1, 2, 3, 4, 5, 6, 7],
+                        index=index)
+    return dir, index
 
 def affine_transform(dir):
     ### Part 4: apply affine transform to each pair ###
-    for path in util.get_landsat_modis_pairs_early(dir):
+    for path in tqdm(util.get_landsat_modis_pairs_early(dir)):
         l_path = path[0]
         m_path = path[1]
         new_f = m_path[:-4]+"_transformed.TIF"
@@ -73,7 +76,7 @@ def affine_transform(dir):
 
 def clip(dir):
     ### Part 5: apply clipping of modis based on landsat bounding box ###
-    for path in util.get_landsat_modis_pairs_early(dir):
+    for path in tqdm(util.get_landsat_modis_pairs_early(dir)):
         l_path = path[0]
         m_path = path[1]
         new_f = m_path[:-4] + "_clipped.TIF"
@@ -93,7 +96,7 @@ def to_NPY(dir, bands=[[3,2,1], [1, 4, 3]]):
     NPY_dir = os.path.join(util.OUTPUT_DIR, "NPY")
     if not os.path.isdir(NPY_dir):
         os.mkdir(NPY_dir)
-    for path in util.get_landsat_modis_pairs_early(dir):
+    for path in tqdm(util.get_landsat_modis_pairs_early(dir)):
 
         # landsat and modis pairs #
         l_path = path[0]
@@ -165,13 +168,83 @@ def wrap(new_download=True):
 
 
 
-def wrap_no_io():
-    dirs = downloading(continue_toggle=False)
-    for landsat_dir, modis_dir in dirs:
-        unzip(landsat_dir, modis_dir)
-        dir = sort(landsat_dir, modis_dir)
+def wrap_no_io(manual_dirs=None):
+    # dirs = downloading(continue_toggle=False)
+    if manual_dirs:
+        dirs = manual_dirs
+    l_dirs = glob.glob(dirs[0] + "\*")
+    m_dirs = glob.glob(dirs[1] + "\*")
+    index = 0
+    for landsat_dir, modis_dir in zip(l_dirs, m_dirs):
+        print(index)
+        try:
+            unzip(landsat_dir, modis_dir)
+            dir, index = sort(landsat_dir, modis_dir, index)
+            dir = affine_transform(dir)
+            clip(dir)
+            to_NPY(dir)
+        except rio_x.NoDataInBounds:
+            print("no data in bounds for dirs: \n{} \n{}".format(landsat_dir, modis_dir))
+            continue
+
+
+
+
+
+def wrap(l_dir,
+         m_dir,
+         call_download=True,
+         call_unzip=True,
+         call_sort=True,
+         call_affine_transform=True,
+         call_clip=True,
+         call_to_NPY=True):
+    """
+    wrap pipe functions
+    :param l_dir:
+    :param m_dir:
+    :return:
+    """
+    l_dirs = glob.glob(l_dir + "\*")
+    m_dirs = glob.glob(m_dir + "\*")
+    index = 0
+    dir = os.environ['LS_MD_PAIRS']
+
+    if call_download:
+        print("downloading...")
+        downloading(continue_toggle=False)
+    if call_unzip or call_sort:
+        if call_unzip and call_sort:
+            print("unzipping and sorting...")
+        elif call_unzip:
+            print("unzipping...")
+        else:
+            print("sorting...")
+
+    for l, m in tqdm(zip(l_dirs, m_dirs)):
+        if call_unzip:
+                unzip(l, m)
+        if call_sort:
+                dir, index = sort(l, m, index)
+
+    if call_affine_transform:
+        print("transforming...")
         dir = affine_transform(dir)
+    if call_clip:
+        print("clipping...")
         clip(dir)
+    if call_to_NPY:
+        print("converting to .NPY...")
         to_NPY(dir)
 
-wrap_no_io()
+kwargs = {'l_dir':r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\super-res\landsat",
+         'm_dir':r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\super-res\MODIS",
+         'call_download':False,
+         'call_unzip':True,
+         'call_sort':True,
+         'call_affine_transform':True,
+         'call_clip':True,
+         'call_to_NPY':True}
+
+
+wrap(**kwargs)
