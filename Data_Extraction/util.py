@@ -250,10 +250,19 @@ def unzip_targz(fpath):
     files = glob.glob(fpath)
     for f in files:
         try:
-            shutil.unpack_archive(f, f.split(".")[0])
-        except shutil.ReadError:
-            os.mkdir(f.split(".")[0])
-            shutil.unpack_archive(f, f.split(".")[0])
+            try:
+                shutil.unpack_archive(f, f.split(".")[0])
+            except shutil.ReadError:
+                os.mkdir(f.split(".")[0])
+                shutil.unpack_archive(f, f.split(".")[0])
+        except EOFError:
+            print("error unpacking: {}".format(f.split(".")[0]))
+            with open(
+                    r"C:\Users\Noah Barrett\Desktop\School\Research 2020\code\super-res\LSHT-HSLT-MODIS-Landsat-Fusion\assets\log.txt",
+                    "w") as f:
+                f.write("unpack error: {}\n".format(f.split(".")[0]))
+            continue
+
 
 def organize_dir(fpath):
     """
@@ -439,8 +448,14 @@ def build_dataset(output_dir, l_dir, m_dir, stacked_bands, index):
                       ds_name=m[0],
                       stacked_bands=stacked_bands):
             print("modis stack failed")
-            shutil.rmtree(dir)
-            continue
+            try:
+                shutil.rmtree(dir)
+                continue
+            except PermissionError:
+                with open(r"C:\Users\Noah Barrett\Desktop\School\Research 2020\code\super-res\LSHT-HSLT-MODIS-Landsat-Fusion\assets\log.txt", "w") as f:
+                    f.write("faulty pair: {}".format(dir))
+
+
 
         # if succesfully stack both images increment #
         index += 1

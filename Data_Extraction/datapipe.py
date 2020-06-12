@@ -66,23 +66,43 @@ def sort(landsat_dir, modis_dir, index):
 def affine_transform(dir):
     ### Part 4: apply affine transform to each pair ###
     for path in tqdm(util.get_landsat_modis_pairs_early(dir)):
-        l_path = path[0]
-        m_path = path[1]
-        new_f = m_path[:-4]+"_transformed.TIF"
-        util.reproject_on_tif(inpath=m_path,
-                              outpath=new_f,
-                              to_copy_from_path=l_path)
+        try:
+            l_path = path[0]
+            m_path = path[1]
+            new_f = m_path[:-4]+"_transformed.TIF"
+            util.reproject_on_tif(inpath=m_path,
+                                  outpath=new_f,
+                                  to_copy_from_path=l_path)
+        except IndexError:
+            print("error transforming: {}".format(path))
+            try:
+                with open(
+                        r"C:\Users\Noah Barrett\Desktop\School\Research 2020\code\super-res\LSHT-HSLT-MODIS-Landsat-Fusion\assets\log.txt",
+                        "w") as f:
+                    f.write("transform error: {}\n".format(path))
+            except:
+                pass
     return dir
 
 def clip(dir):
     ### Part 5: apply clipping of modis based on landsat bounding box ###
     for path in tqdm(util.get_landsat_modis_pairs_early(dir)):
-        l_path = path[0]
-        m_path = path[1]
-        new_f = m_path[:-4] + "_clipped.TIF"
-        util.clip_tif_wrt_tif(inpath=m_path,
-                              outpath=new_f,
-                              to_copy_from_path=l_path)
+        try:
+            l_path = path[0]
+            m_path = path[1]
+            new_f = m_path[:-4] + "_clipped.TIF"
+            util.clip_tif_wrt_tif(inpath=m_path,
+                                  outpath=new_f,
+                                  to_copy_from_path=l_path)
+        except:
+            print("error transforming: {}".format(path))
+            try:
+                with open(
+                        r"C:\Users\Noah Barrett\Desktop\School\Research 2020\code\super-res\LSHT-HSLT-MODIS-Landsat-Fusion\assets\log.txt",
+                        "w") as f:
+                    f.write("transform error: {}\n".format(path))
+            except:
+                pass
 
 def to_NPY(dir, bands=[[3,2,1], [1, 4, 3]]):
     """
@@ -97,49 +117,58 @@ def to_NPY(dir, bands=[[3,2,1], [1, 4, 3]]):
     if not os.path.isdir(NPY_dir):
         os.mkdir(NPY_dir)
     for path in tqdm(util.get_landsat_modis_pairs_early(dir)):
+        try:
 
-        # landsat and modis pairs #
-        l_path = path[0]
-        m_path = path[1]
+            # landsat and modis pairs #
+            l_path = path[0]
+            m_path = path[1]
 
-        # get both scene images from file names #
-        L_ID = os.path.basename(l_path)[:40]
-        M_ID = os.path.basename(m_path)[:27]
-        MetaID = np.array([L_ID, M_ID])
+            # get both scene images from file names #
+            L_ID = os.path.basename(l_path)[:40]
+            M_ID = os.path.basename(m_path)[:27]
+            MetaID = np.array([L_ID, M_ID])
 
-        # make file name based on pair and country #
-        num = os.path.basename(os.path.split(l_path)[-2])
-        fname = num + ".npy"
+            # make file name based on pair and country #
+            num = os.path.basename(os.path.split(l_path)[-2])
+            fname = num + ".npy"
 
-        f_path = os.path.join(NPY_dir, fname)
+            f_path = os.path.join(NPY_dir, fname)
 
-        # open landsat #
-        l_raster = rio.open(l_path)
+            # open landsat #
+            l_raster = rio.open(l_path)
 
-        # open MODIS #
-        m_raster = rio.open(m_path)
-        l_m_bands = [[], []]
-        for l_band, m_band in zip(bands[0], bands[1]):
-            # read band for both rasters #
-            l_m_bands[0].append(l_raster.read(l_band))
-            l_m_bands[1].append(m_raster.read(m_band))
+            # open MODIS #
+            m_raster = rio.open(m_path)
+            l_m_bands = [[], []]
+            for l_band, m_band in zip(bands[0], bands[1]):
+                # read band for both rasters #
+                l_m_bands[0].append(l_raster.read(l_band))
+                l_m_bands[1].append(m_raster.read(m_band))
 
 
-        # stack the bands #
-        l_stack = np.dstack(l_m_bands[0])
-        m_stack = np.dstack(l_m_bands[1])
+            # stack the bands #
+            l_stack = np.dstack(l_m_bands[0])
+            m_stack = np.dstack(l_m_bands[1])
 
-        ### save as numpy ###
+            ### save as numpy ###
 
-        with open(f_path, 'wb') as f:
-            # lsat
-            np.save(f, l_stack)
-            # modis
-            np.save(f, m_stack)
-            # include IDs in .npy file so we can
-            # keep track of what scenes we are working with
-            np.save(f, MetaID)
-
+            with open(f_path, 'wb') as f:
+                # lsat
+                np.save(f, l_stack)
+                # modis
+                np.save(f, m_stack)
+                # include IDs in .npy file so we can
+                # keep track of what scenes we are working with
+                np.save(f, MetaID)
+        except:
+            print("error converting to NPY: {}".format(f_path))
+            try:
+                with open(
+                        r"C:\Users\Noah Barrett\Desktop\School\Research 2020\code\super-res\LSHT-HSLT-MODIS-Landsat-Fusion\assets\log.txt",
+                        "w") as f:
+                    f.write("transform error: {}\n".format(f_path))
+            except:
+                pass
 def wrap(new_download=True):
     if new_download:
         dirs = downloading()
@@ -235,14 +264,17 @@ def wrap(l_dir,
         clip(dir)
     if call_to_NPY:
         print("converting to .NPY...")
+
         to_NPY(dir)
+
+
 
 kwargs = {'l_dir':r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\super-res\landsat",
          'm_dir':r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\super-res\MODIS",
          'call_download':False,
-         'call_unzip':True,
-         'call_sort':True,
-         'call_affine_transform':True,
+         'call_unzip':False,
+         'call_sort':False,
+         'call_affine_transform':False,
          'call_clip':True,
          'call_to_NPY':True}
 
