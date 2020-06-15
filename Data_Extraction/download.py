@@ -55,7 +55,7 @@ class downloader():
         self.EEE = EarthExplorerExtended(username=self.username, password=self.password)
 
         ### GET LATS-LONS ###
-        self.lat_lon = util.load_world_lat_lon(OUTPUT_DIR + r"\world_lat_lon\world_country_and_usa_states_latitude_and_longitude_values.csv")
+        self.lat_lon = util.load_world_lat_lon(OUTPUT_DIR + r"\world_lat_lon\world_country_and_usa_states_latitude_and_longitude_values_edit.csv")
         self.ll_iter = self.lat_lon.iterrows()
 
     def download_all(self, continue_toggle=False):

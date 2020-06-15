@@ -23,7 +23,7 @@ discriminator D that is tained to distinguish super-resolved images from real im
 import tensorflow as tf
 from Generator import Generator
 from Discriminator import Discriminator
-from NPYDataGenerator import NPYDataGeneratorSR
+from Models.NPYDataGenerator import NPYDataGeneratorSR
 import Data_Extraction.util as util
 tf.keras.backend.set_floatx('float64')
 

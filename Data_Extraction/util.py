@@ -452,8 +452,8 @@ def build_dataset(output_dir, l_dir, m_dir, stacked_bands, index):
                 shutil.rmtree(dir)
                 continue
             except PermissionError:
-                with open(r"C:\Users\Noah Barrett\Desktop\School\Research 2020\code\super-res\LSHT-HSLT-MODIS-Landsat-Fusion\assets\log.txt", "w") as f:
-                    f.write("faulty pair: {}".format(dir))
+                with open(r"C:\Users\Noah Barrett\Desktop\School\Research 2020\code\super-res\LSHT-HSLT-MODIS-Landsat-Fusion\assets\log.txt", "a") as f:
+                    f.write("faulty pair: {}\n".format(dir))
 
 
 

@@ -78,7 +78,7 @@ def affine_transform(dir):
             try:
                 with open(
                         r"C:\Users\Noah Barrett\Desktop\School\Research 2020\code\super-res\LSHT-HSLT-MODIS-Landsat-Fusion\assets\log.txt",
-                        "w") as f:
+                        "a") as f:
                     f.write("transform error: {}\n".format(path))
             except:
                 pass
@@ -99,7 +99,7 @@ def clip(dir):
             try:
                 with open(
                         r"C:\Users\Noah Barrett\Desktop\School\Research 2020\code\super-res\LSHT-HSLT-MODIS-Landsat-Fusion\assets\log.txt",
-                        "w") as f:
+                        "a") as f:
                     f.write("transform error: {}\n".format(path))
             except:
                 pass
@@ -165,61 +165,14 @@ def to_NPY(dir, bands=[[3,2,1], [1, 4, 3]]):
             try:
                 with open(
                         r"C:\Users\Noah Barrett\Desktop\School\Research 2020\code\super-res\LSHT-HSLT-MODIS-Landsat-Fusion\assets\log.txt",
-                        "w") as f:
+                        "a") as f:
                     f.write("transform error: {}\n".format(f_path))
             except:
                 pass
-def wrap(new_download=True):
-    if new_download:
-        dirs = downloading()
-    else:
-        # latest_country = input("latest country: " )
-        latest_country = "Andorra"
-        landsat_dir = glob.glob(util.OUTPUT_DIR + "/landsat/*")
-        modis_dir =  glob.glob(util.OUTPUT_DIR + "/MODIS/*")
-        dirs = [[l, m] for l, m in zip(landsat_dir, modis_dir)]
-    print("download complete")
-    os.system("PAUSE")
 
-    for landsat_dir, modis_dir in dirs:
-        unzip(landsat_dir, modis_dir)
-        print("unzip complete")
-        os.system("PAUSE")
-        dir = sort(landsat_dir, modis_dir)
-        print("sort complete")
-        os.system("PAUSE")
-        dir = affine_transform(dir)
-        print("transform complete")
-        os.system("PAUSE")
-        clip(dir)
-        print("clip complete")
-        to_NPY(dir)
-
-
-
-def wrap_no_io(manual_dirs=None):
-    # dirs = downloading(continue_toggle=False)
-    if manual_dirs:
-        dirs = manual_dirs
-    l_dirs = glob.glob(dirs[0] + "\*")
-    m_dirs = glob.glob(dirs[1] + "\*")
-    index = 0
-    for landsat_dir, modis_dir in zip(l_dirs, m_dirs):
-        print(index)
-        try:
-            unzip(landsat_dir, modis_dir)
-            dir, index = sort(landsat_dir, modis_dir, index)
-            dir = affine_transform(dir)
-            clip(dir)
-            to_NPY(dir)
-        except rio_x.NoDataInBounds:
-            print("no data in bounds for dirs: \n{} \n{}".format(landsat_dir, modis_dir))
-            continue
-
-
-
-
-
+#################
+# Wrap function #
+#################
 def wrap(l_dir,
          m_dir,
          call_download=True,
@@ -271,10 +224,10 @@ def wrap(l_dir,
 
 kwargs = {'l_dir':r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\super-res\landsat",
          'm_dir':r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\super-res\MODIS",
-         'call_download':False,
-         'call_unzip':False,
-         'call_sort':False,
-         'call_affine_transform':False,
+         'call_download':True,
+         'call_unzip':True,
+         'call_sort':True,
+         'call_affine_transform':True,
          'call_clip':True,
          'call_to_NPY':True}
 
