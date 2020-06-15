@@ -99,7 +99,9 @@ def test_step(sample, label):
 
 
 ### TRAIN ###
-EPOCHS = 5
+EPOCHS = 1000
+NUM_CHECKPOINTS_DIV = int(EPOCHS/4)
+save_c = 1
 
 for epoch in range(EPOCHS):
     # Reset the metrics at the start of the next epoch
@@ -122,4 +124,6 @@ for epoch in range(EPOCHS):
                         test_loss.result(),
                         test_accuracy.result() * 100))
 
-
+    if epoch % NUM_CHECKPOINTS_DIV == 0:
+        vgg.save_weights('./checkpoints/my_checkpoint_{}'.format(save_c))
+        save_c += 1
