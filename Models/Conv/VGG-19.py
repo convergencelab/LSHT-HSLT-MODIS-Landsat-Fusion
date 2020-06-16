@@ -15,11 +15,9 @@ in the perceptual loss function.
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-
+import os
 import tensorflow_datasets as tfds
-
-from Models.NPYDataGenerator import NPYDataGeneratorSR
-
+import load_EuroSat as lE
 _CITATION = """
     @misc{helber2017eurosat,
     title={EuroSAT: A Novel Dataset and Deep Learning Benchmark for Land Use and Land Cover Classification},
@@ -33,12 +31,29 @@ _CITATION = """
 ### get data ###
 """
 using eurosat dataset, this dataset uses the sentenial-2 collected satellite images
-
 """
-WEIGHTS_DIR = r""
+euro_path = r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\EuroSat"
 
-train_data, test_data = tfds.load('eurosat', split='train')
+### Hyperparameters ###
+batch_size = 12
+classes_to_include = [
+    'Residential'
+]
+### initalize loaders ###
+train_data = lE.training_data_loader(
+    base_dir=os.path.join(euro_path, "train_data"))
+test_data = lE.testing_data_loader(
+    base_dir=os.path.join(euro_path, "test_data"))
+### load data ###
+train_data.load_data(selected_classes=classes_to_include)
+test_data.load_data()
 
+### prep train-data ###
+train_data.prepare_for_training(batch_size=batch_size)
+test_data.prepare_for_testing()
+
+
+r"""
 ### initialize model ###
 vgg = tf.keras.applications.VGG19(
                             include_top=True,
@@ -50,13 +65,14 @@ vgg = tf.keras.applications.VGG19(
                             classifier_activation="softmax",
                             training=True
                         )
-
+"""
 ### loss function ###
 """
 Use MSE loss:
   
     ref -> "https://towardsdatascience.com/loss-functions-based-on-feature-activation-and-style-loss-2f0b72fd32a9"
 """
+r"""
 m_loss = tf.keras.losses.MSE
 
 ### adam optimizer for SGD ###
@@ -97,6 +113,9 @@ def test_step(sample, label):
   test_loss(t_loss)
   test_accuracy(label, predictions)
 
+### Weights Dir ###
+if not os.isdir('./checkpoints'):
+    os.mkdir('./checkpoints')
 
 ### TRAIN ###
 EPOCHS = 1000
@@ -117,13 +136,16 @@ for epoch in range(EPOCHS):
     for sample, label in test_data:
       test_step(sample, label)
 
-    template = 'Training VGG-19:\nEpoch {}, Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}'
-    print(template.format(epoch + 1,
-                        train_loss.result(),
-                        train_accuracy.result() * 100,
-                        test_loss.result(),
-                        test_accuracy.result() * 100))
-
-    if epoch % NUM_CHECKPOINTS_DIV == 0:
+    ### save weights ###
+    if not epoch % NUM_CHECKPOINTS_DIV:
         vgg.save_weights('./checkpoints/my_checkpoint_{}'.format(save_c))
         save_c += 1
+    if not epoch % 100:
+        ### outputs every 100 epochs so .out file from slurm is not huge. ###
+        template = 'Training VGG-19:\nEpoch {}, Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}'
+        print(template.format(epoch + 1,
+                              train_loss.result(),
+                              train_accuracy.result() * 100,
+                              test_loss.result(),
+                              test_accuracy.result() * 100))
+"""

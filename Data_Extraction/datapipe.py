@@ -224,7 +224,7 @@ def wrap(l_dir,
 
 kwargs = {'l_dir':r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\super-res\landsat",
          'm_dir':r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\super-res\MODIS",
-         'call_download':True,
+         'call_download':False,
          'call_unzip':True,
          'call_sort':True,
          'call_affine_transform':True,
