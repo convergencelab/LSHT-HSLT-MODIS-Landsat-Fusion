@@ -152,7 +152,7 @@ class training_data_loader(loader):
         :param batch_size: batch_size for prepared dataset
         :return: returns prepared ds
         """
-
+        self._current_ds = self._current_ds.take(batch_size)
         if cache:
             if isinstance(cache, str):
                 # if we pass a string to cache

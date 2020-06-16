@@ -18,6 +18,7 @@ import tensorflow as tf
 import os
 import tensorflow_datasets as tfds
 import load_EuroSat as lE
+from tqdm import tqdm
 _CITATION = """
     @misc{helber2017eurosat,
     title={EuroSAT: A Novel Dataset and Deep Learning Benchmark for Land Use and Land Cover Classification},
@@ -35,44 +36,40 @@ using eurosat dataset, this dataset uses the sentenial-2 collected satellite ima
 euro_path = r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\EuroSat"
 
 ### Hyperparameters ###
-batch_size = 12
-classes_to_include = [
-    'Residential'
-]
+batch_size = 1
+
 ### initalize loaders ###
 train_data = lE.training_data_loader(
     base_dir=os.path.join(euro_path, "train_data"))
 test_data = lE.testing_data_loader(
     base_dir=os.path.join(euro_path, "test_data"))
 ### load data ###
-train_data.load_data(selected_classes=classes_to_include)
+train_data.load_data()
 test_data.load_data()
 
 ### prep train-data ###
 train_data.prepare_for_training(batch_size=batch_size)
-test_data.prepare_for_testing()
+test_data.prepare_for_testing(batch_size=batch_size)
 
 
-r"""
 ### initialize model ###
 vgg = tf.keras.applications.VGG19(
                             include_top=True,
                             weights=None,
                             input_tensor=None,
-                            input_shape=None,
+                            input_shape=[224, 224, 3],
                             pooling=None,
                             classes=1000,
-                            classifier_activation="softmax",
-                            training=True
+                            classifier_activation="softmax"
                         )
-"""
+
 ### loss function ###
 """
 Use MSE loss:
   
     ref -> "https://towardsdatascience.com/loss-functions-based-on-feature-activation-and-style-loss-2f0b72fd32a9"
 """
-r"""
+
 m_loss = tf.keras.losses.MSE
 
 ### adam optimizer for SGD ###
@@ -88,8 +85,12 @@ test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_vgg-19_acc
 
 ### train step ###
 @tf.function
-def train_step(sample, label):
+def train_step(idx, sample, label):
   with tf.GradientTape() as tape:
+    # preprocess for vgg-19
+    sample = tf.image.resize(sample, (224, 224))
+    sample = tf.keras.applications.vgg19.preprocess_input(sample)
+
     predictions = vgg(sample, training=True)
     # mean squared error in prediction
     loss = tf.keras.losses.MSE(label, predictions)
@@ -104,7 +105,10 @@ def train_step(sample, label):
 
 ### generator test step ###
 @tf.function
-def test_step(sample, label):
+def test_step(idx, sample, label):
+  # preprocess for vgg-19
+  sample = tf.image.resize(sample, (224, 224))
+  sample = tf.keras.applications.vgg19.preprocess_input(sample)
   # feed test sample in
   predictions = vgg(sample, training=False)
   t_loss = tf.keras.losses.MSE(label, predictions)
@@ -114,7 +118,7 @@ def test_step(sample, label):
   test_accuracy(label, predictions)
 
 ### Weights Dir ###
-if not os.isdir('./checkpoints'):
+if not os.path.isdir('./checkpoints'):
     os.mkdir('./checkpoints')
 
 ### TRAIN ###
@@ -128,13 +132,21 @@ for epoch in range(EPOCHS):
     train_accuracy.reset_states()
     test_loss.reset_states()
     test_accuracy.reset_states()
+    for idx in tqdm(range(train_data.get_ds_size() // batch_size)):
+        # train step
+        batch = train_data.get_train_batch()
+        for sample, label in zip(batch[0], batch[1]):
+            sample = np.array(sample)[np.newaxis, ...]
+            label = np.array(label)[np.newaxis, ...]
+            train_step(idx, sample, label)
 
-    # train step
-    for sample, label in train_data:
-      train_step(sample, label)
-    # test step
-    for sample, label in test_data:
-      test_step(sample, label)
+        # test step
+        batch = test_data.get_test_batch()
+        for sample, label in zip(batch[0], batch[1]):
+            sample = np.array(sample)[np.newaxis, ...]
+            label = np.array(label)[np.newaxis, ...]
+
+            test_step(idx, sample, label)
 
     ### save weights ###
     if not epoch % NUM_CHECKPOINTS_DIV:
@@ -148,4 +160,3 @@ for epoch in range(EPOCHS):
                               train_accuracy.result() * 100,
                               test_loss.result(),
                               test_accuracy.result() * 100))
-"""
