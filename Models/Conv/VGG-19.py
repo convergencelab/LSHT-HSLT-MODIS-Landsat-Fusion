@@ -140,7 +140,7 @@ for epoch in range(EPOCHS):
             train_step(idx, sample, label)
 
         # test step
-        batch = test_data.get_test_batch()
+        batch = test_data.get_test_batch(batch_size=batch_size)
         for sample, label in zip(batch[0], batch[1]):
             sample = np.array(sample)[np.newaxis, ...]
             label = np.array(label)[np.newaxis, ...]

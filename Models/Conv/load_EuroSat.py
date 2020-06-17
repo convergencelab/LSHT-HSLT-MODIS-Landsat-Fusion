@@ -218,7 +218,10 @@ class testing_data_loader(loader):
 
 
     def get_test_batch(self, batch_size):
-        self._current_ds = iter(self._current_ds.batch(batch_size))
+        try:
+            self._current_ds = iter(self._current_ds.batch(batch_size))
+        except:
+            pass
         return next(self._current_ds)
 
 

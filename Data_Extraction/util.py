@@ -747,3 +747,14 @@ def save_pairs_to_text(scenes, datasets, outdir):
         f.write(title)
         for l, m  in scenes:
             f.write("{}, {}".format(l["displayId"], m["displayId"]))
+
+def offset_pair_dirs(offset):
+    dir = os.path.join(OUTPUT_DIR, "NPY")
+    for dir in glob.glob(dir+"\*"):
+
+        base = os.path.basename(dir)
+        num = base.split("_")[1]
+        num = int(num.split(".")[0]) + offset
+        new_dir = os.path.join(os.path.split(dir)[0], base.split("_")[0] + "_{}.npy".format(num))
+        print(new_dir)
+        os.rename(dir, new_dir)
