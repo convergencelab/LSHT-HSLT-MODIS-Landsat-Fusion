@@ -432,7 +432,7 @@ def get_surface_reflectance_bands(l_dir, m_dir):
 
     return files
 
-def get_surface_reflectance_pairs(l_dir, m_dir):
+def get_surface_reflectance_pairs():
     """
     get the actual file paths for each exisiting pair
     :param l_dir: str dir
@@ -501,7 +501,7 @@ def stack_rasters(bands, output_dir, ds_name, stacked_bands=[1,2,3]):
     return True
 
 
-def build_dataset(output_dir, l_dir, m_dir, stacked_bands, index):
+def build_dataset(output_dir, stacked_bands, index=0):
     """
     build dataset given dirs and desired bandss
     :param output_dir: str dir
@@ -511,7 +511,7 @@ def build_dataset(output_dir, l_dir, m_dir, stacked_bands, index):
     :return: None
     """
     # get band pairs
-    pairs = get_surface_reflectance_pairs(l_dir, m_dir)
+    pairs = get_surface_reflectance_pairs()
     for i, pair in enumerate(pairs):
         l, m = pair
         # dir for pairs

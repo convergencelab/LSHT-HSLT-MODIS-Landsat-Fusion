@@ -56,13 +56,10 @@ def unzip(landsat_dir, modis_dir):
     # del all zipped files afterwards
     util.del_zipped()
 
-def sort(landsat_dir, modis_dir, index):
+def sort():
     ### Part 3: sort files into associated landsat-modis pairs ###
     dir, index = util.build_dataset(output_dir=os.environ['LS_MD_PAIRS'],
-                       l_dir=landsat_dir,
-                       m_dir=modis_dir,
-                       stacked_bands=[1, 2, 3, 4, 5, 6, 7],
-                        index=index)
+                                       stacked_bands=[1, 2, 3, 4, 5, 6, 7])
     return dir, index
 
 def affine_transform(dir):
@@ -208,8 +205,8 @@ def wrap(l_dir,
     for l, m in tqdm(zip(l_dirs, m_dirs)):
         if call_unzip:
                 unzip(l, m)
-        if call_sort:
-                dir, index = sort(l, m, index)
+    if call_sort:
+        dir, index = sort()
 
     if call_affine_transform:
         print("transforming...")

@@ -100,7 +100,7 @@ def train_step(idx, sample, label):
 
   # update metrics
   train_loss(loss)
-  train_accuracy(vgg, predictions)
+  train_accuracy(label, predictions)
 
 ### generator test step ###
 @tf.function
