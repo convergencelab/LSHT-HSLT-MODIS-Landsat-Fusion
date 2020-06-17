@@ -9,5 +9,9 @@ supported Datasets extending Landsatxplorer can be found in that document as wel
 Modis-Landsat pairs are downloaded from the USGS EarthExplorer API, there are matched up based on their Aquistition date as well as
 their location. 
 
-   
+These pairs are converted to .npy pairs for super-resolution: (landsat(high-res), modis(low-res))
+
+# section 2: exploring models
+Using the above downloaded data, test different models:
+*  SR-GAN
 
