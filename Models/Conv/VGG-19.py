@@ -16,7 +16,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import os
-import tensorflow_datasets as tfds
 import load_EuroSat as lE
 from tqdm import tqdm
 _CITATION = """
@@ -49,7 +48,7 @@ test_data.load_data()
 
 ### prep train-data ###
 train_data.prepare_for_training(batch_size=batch_size)
-test_data.prepare_for_testing(batch_size=batch_size)
+test_data.prepare_for_testing()
 
 
 ### initialize model ###

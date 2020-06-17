@@ -56,7 +56,7 @@ def day_time_step(date):
     :param date: datetime obj
     :return: incremented datetime obj
     """
-    date = date.fromisoformat('2019-12-04')
+    # date = date.fromisoformat('2019-12-04')
     date += timedelta(days=1)
     return str(date)
 
@@ -221,15 +221,84 @@ def compute_approx_center(coord, str=True):
         return "{}, {}".format(x, y)
     else:
         return (x, y)
+def get_landsat_date(f):
+    """
+    Landsat file name:
+        LXSS_LLLL_PPPRRR_YYYYMMDD_yyyymmdd_CC_TX
+        L = Landsat
+        X = Sensor (“C”=OLI/TIRS combined, “O”=OLI-only, “T”=TIRS-only, “E”=ETM+, “T”=“TM, “M”=MSS)
+        SS = Satellite (”07”=Landsat 7, “08”=Landsat 8)
+        LLL = Processing correction level (L1TP/L1GT/L1GS)
+        PPP = WRS path
+        RRR = WRS row
+        YYYYMMDD = Acquisition year, month, day
+        yyyymmdd - Processing year, month, day
+        CC = Collection number (01, 02, …)
+        TX = Collection category (“RT”=Real-Time, “T1”=Tier 1, “T2”=Tier 2)
+    """
+    l_date = f.split("_")[3]
+    l_date = str(datetime.datetime.strptime(l_date, '%Y%m%d')).split(' ')[0]
+    l_date = datetime.date.fromisoformat(l_date)
+
+    return str(l_date)
+
+def get_modis_date(f):
+    """
+    MODIS file name:
+        MOD09A1.A2006001.h08v05.006.2015113045801.hdf:
+        MOD09A1 - Product Short Name
+        A2006001 - Julian Date of Acquisition (A-YYYYDDD)
+        h08v05 - Tile Identifier (horizontalXXverticalYY)
+        006 - Collection Version
+        2015113045801 - Julian Date of Production (YYYYDDDHHMMSS)
+        .hdf - Data Format (HDF-EOS)
+    """
+    # date = 'A2006001'[1:]
+    date = f.split('.')[1][1:]
+    parsed = datetime.datetime.strptime(date, '%Y%j')
+    date = datetime.datetime.strftime(parsed, '%Y-%m-%d')
+    date = datetime.date.fromisoformat(date)
+    return str(date)
+
+def image_pairs_from_dirs():
+    l_dir = os.path.join(OUTPUT_DIR, "landsat\*")
+    m_dir = os.path.join(OUTPUT_DIR, "MODIS\*")
+    fnames = []
+    # iterate through each country
+    for l, m in zip(glob.glob(l_dir), glob.glob(m_dir)):
+        # get list of all sub-dirs in directory
+        landsat = [f for f in glob.glob(l+"\*") if os.path.isdir(f)]
+        modis = [f for f in glob.glob(m+"\*") if os.path.isdir(f)]
+
+        # get dates for both landsat and modis
+        landsat = {get_landsat_date(f):f for f in landsat}
+        modis = {get_modis_date(f):f for f in modis}
+        # print("lsat:", landsat.keys())
+         # print("modis:", modis.keys())
+        # hash on dates
+        sub_fnames = []
+        for k in landsat.keys():
+            try:
+                sub_fnames.append((landsat[k], modis[k]))
+            except KeyError:
+                # if pair doesnt exist dont include it ( dates dont match )
+                continue
+        # add to total
+        fnames += sub_fnames
+    return fnames
 
 def get_image_pairs():
     """
-    get image pairs iterable from downloaded data, based on json
+    DEPRECATING
+    get image pairs iterable from downloaded data, based on json,
+    if from_meta=false, doe snot rely on meta. Based on dates on the fname
     :param path_to_datasets: str path to json file containing meta data
     :param data_path: str path to being stored
     :return: iterable
     """
+
     data_pairs = load_latest_meta()
+
 
     fnames = []
     for i in range(len(data_pairs)):
@@ -263,6 +332,23 @@ def unzip_targz(fpath):
                 f.write("unpack error: {}\n".format(f.split(".")[0]))
             continue
 
+def del_zipped():
+    """
+    deletes all zipped files in landsat modis dirs
+    to be called after unzip
+    :return: None
+    """
+    l_dir = os.path.join(OUTPUT_DIR, "landsat\*")
+    m_dir = os.path.join(OUTPUT_DIR, "MODIS\*")
+    for l, m in zip(glob.glob(l_dir), glob.glob(m_dir)):
+        # remove landsat files
+        for f in glob.glob(l+"\*"):
+            if f.endswith('.tar.gz'):
+                os.remove(f)
+        # remove zipped modis files
+        for f in glob.glob(m+"\*"):
+            if f.endswith('.hdf'):
+                os.remove(f)
 
 def organize_dir(fpath):
     """
@@ -353,22 +439,23 @@ def get_surface_reflectance_pairs(l_dir, m_dir):
     :param m_dir: str dir
     :return:
     """
+    """deprecating json method of data aquisition 
     # get the image pairs from json data
     pairs = get_image_pairs()
+    """
+    # get image pairs from fnames:
+    pairs = image_pairs_from_dirs()
 
     # return pairs
     full_pairs = []
 
     # for each pair of images
     for l, m in pairs:
-        landsat_dir = os.path.join(l_dir, l)
-        modis_dir = os.path.join(m_dir, m)
-
         # get surface reflectance bands
         try:
-            srb = get_surface_reflectance_bands(landsat_dir, modis_dir)
+            srb = get_surface_reflectance_bands(l, m)
 
-            img_pair = ((l, srb[0]), (m, srb[1]))
+            img_pair = ((os.path.basename(l), srb[0]), (os.path.basename(m), srb[1]))
         except IndexError:
             # if there is no match for the pair move onto next set of pairs
             continue

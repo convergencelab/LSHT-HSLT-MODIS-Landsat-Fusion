@@ -53,6 +53,8 @@ def unzip(landsat_dir, modis_dir):
         pass
     # after this function call is done organize the dir.
     util.organize_dir(modis_dir)
+    # del all zipped files afterwards
+    util.del_zipped()
 
 def sort(landsat_dir, modis_dir, index):
     ### Part 3: sort files into associated landsat-modis pairs ###
@@ -225,7 +227,7 @@ def wrap(l_dir,
 kwargs = {'l_dir':r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\super-res\landsat",
          'm_dir':r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\super-res\MODIS",
          'call_download':False,
-         'call_unzip':True,
+         'call_unzip':False,
          'call_sort':True,
          'call_affine_transform':True,
          'call_clip':True,
