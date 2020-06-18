@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="9d7feef9-0cc5-415e-b08b-5b82534a5f3f" name="graham.computecanada.ca">
+        <fileTransfer rootFolder="/home/x2017sre" accessType="SFTP" host="graham.computecanada.ca" port="22" sshConfigId="087f9a09-c22a-4ac3-afe2-1bc0624db005" sshConfig="x2017sre@graham.computecanada.ca:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

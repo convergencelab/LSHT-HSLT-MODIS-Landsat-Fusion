@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig authType="PASSWORD" host="graham.computecanada.ca" id="087f9a09-c22a-4ac3-afe2-1bc0624db005" port="22" nameFormat="DESCRIPTIVE" username="x2017sre" />
+    </configs>
+  </component>
+</project>

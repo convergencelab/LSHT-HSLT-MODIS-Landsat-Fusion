@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" serverName="graham.computecanada.ca">
+    <serverData>
+      <paths name="graham.computecanada.ca">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/projects/def-jhughe54/x2017sre/Super-res" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/Data_Extraction" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>
