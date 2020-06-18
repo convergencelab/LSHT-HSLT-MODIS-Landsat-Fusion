@@ -1,6 +1,5 @@
 """
 Looking at output of vgg-19 layer
-ref: https://arxiv.org/pdf/1609.04802.pdf
 """
 import matplotlib.pyplot as plt
 import numpy as np
