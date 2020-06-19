@@ -17,6 +17,7 @@ import numpy as np
 import tensorflow as tf
 import os
 import load_EuroSat as lE
+from datetime import datetime
 
 _CITATION = """
     @misc{helber2017eurosat,
@@ -120,12 +121,13 @@ def test_step(idx, sample, label):
 ### tensorboard ###
 
 # initialize logs #
-current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
 train_log_dir = './logs/gradient_tape/' + current_time + '/train'
 test_log_dir = './logs/gradient_tape/' + current_time + '/test'
+# image_log_dir = './logs/gradient_tape/' + current_time + '/image'
 train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 test_summary_writer = tf.summary.create_file_writer(test_log_dir)
-
+# image_summary_writer = tf.summary.create_file_writer(image_log_dir)
 # Use tf.summary.scalar() to log metrics in training #
 
 ### Weights Dir ###
@@ -162,7 +164,19 @@ for epoch in range(EPOCHS):
             sample = np.array(sample)[np.newaxis, ...]
             label = np.array(label)[np.newaxis, ...]
             test_step(idx, sample, label)
-
+            """discluding image writer until conceptually resolved
+            # image writer
+            with image_summary_writer.as_default():
+                # pass through last sample in test batch just to see
+                # pass through input
+                _x = vgg.get_layer(index=0)(sample)
+                ### get layers ###
+                for i in range(2):
+                    # up to block1_conv2 (Conv2D)
+                    _x = vgg.get_layer(index=i)(_x)
+                img = vgg(sample, training=False)
+                tf.summary.image("conv output", _x, step=epoch)
+            """
         # write to test-log #
         with test_summary_writer.as_default():
             tf.summary.scalar('loss', test_loss.result(), step=epoch)
@@ -173,6 +187,7 @@ for epoch in range(EPOCHS):
         vgg.save_weights('./checkpoints/my_checkpoint_{}'.format(save_c))
         save_c += 1
 
+
     if not epoch % 100:
         ### outputs every 100 epochs so .out file from slurm is not huge. ###
         template = 'Training VGG-19:\nEpoch {}, Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}'
@@ -182,3 +197,5 @@ for epoch in range(EPOCHS):
                               test_loss.result(),
                               test_accuracy.result() * 100))
 
+
+# test
