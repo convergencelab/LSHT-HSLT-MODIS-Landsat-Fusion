@@ -18,6 +18,7 @@ import tensorflow as tf
 import os
 import load_EuroSat as lE
 from datetime import datetime
+import csv
 
 _CITATION = """
     @misc{helber2017eurosat,
@@ -29,6 +30,12 @@ _CITATION = """
     primaryClass={cs.CV}
 }"""
 
+### manually store data ###
+fname = "/project/6026587/x2017sre/manual_logs/" + datetime.now().strftime("%Y%m%d-%H%M%S") + "_train_results.csv"
+# manually write info
+with open(fname, "w+") as csv_file:
+    csv_writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    csv_writer.writerow(["train loss", "train acc.","test loss", "test acc."])
 ### get data ###
 """
 using eurosat dataset, this dataset uses the sentenial-2 collected satellite images
@@ -41,6 +48,7 @@ batch_size = 10
 ### initalize loaders ###
 train_data = lE.training_data_loader(
     base_dir=os.path.join(euro_path, "train_data"))
+
 test_data = lE.testing_data_loader(
     base_dir=os.path.join(euro_path, "test_data"))
 ### load data ###
@@ -102,7 +110,6 @@ def train_step(idx, sample, label):
     train_loss(loss)
     train_accuracy(label, predictions)
 
-
 ### generator test step ###
 @tf.function
 def test_step(idx, sample, label):
@@ -116,6 +123,7 @@ def test_step(idx, sample, label):
     # update metrics
     test_loss(t_loss)
     test_accuracy(label, predictions)
+
 
 
 ### tensorboard ###
@@ -145,10 +153,18 @@ for epoch in range(EPOCHS):
     train_accuracy.reset_states()
     test_loss.reset_states()
     test_accuracy.reset_states()
+
     for idx in range(train_data.get_ds_size() // batch_size):
+
         # train step
         batch = train_data.get_train_batch()
         for sample, label in zip(batch[0], batch[1]):
+            # testing to see what the input is looking like
+            if epoch == 0 == idx:
+                fig, ax = plt.subplots(1,1)
+                ax.imshow(sample)
+                # ax.set_title(label)
+                plt.savefig(r"/project/6026587/x2017sre")
             sample = np.array(sample)[np.newaxis, ...]
             label = np.array(label)[np.newaxis, ...]
             train_step(idx, sample, label)
@@ -164,24 +180,19 @@ for epoch in range(EPOCHS):
             sample = np.array(sample)[np.newaxis, ...]
             label = np.array(label)[np.newaxis, ...]
             test_step(idx, sample, label)
-            """discluding image writer until conceptually resolved
-            # image writer
-            with image_summary_writer.as_default():
-                # pass through last sample in test batch just to see
-                # pass through input
-                _x = vgg.get_layer(index=0)(sample)
-                ### get layers ###
-                for i in range(2):
-                    # up to block1_conv2 (Conv2D)
-                    _x = vgg.get_layer(index=i)(_x)
-                img = vgg(sample, training=False)
-                tf.summary.image("conv output", _x, step=epoch)
-            """
+
         # write to test-log #
         with test_summary_writer.as_default():
             tf.summary.scalar('loss', test_loss.result(), step=epoch)
             tf.summary.scalar('accuracy', test_accuracy.result(), step=epoch)
 
+    # manually write info
+    with open(fname, "w+") as csv_file:
+        csv_writer = csv.writer(csv_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writerow([train_loss.result(),
+                             train_accuracy.result(),
+                             test_loss.result(),
+                             test_accuracy.result()])
     ### save weights ###
     if not epoch % NUM_CHECKPOINTS_DIV:
         vgg.save_weights('./checkpoints/my_checkpoint_{}'.format(save_c))

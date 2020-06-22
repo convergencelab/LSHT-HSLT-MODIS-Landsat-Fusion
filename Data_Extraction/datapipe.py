@@ -226,8 +226,7 @@ kwargs = {'l_dir':r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\supe
          'call_download':True,
          'call_unzip':True,
          'call_sort':True,
-         'call_affine_transform':True,
-         'call_clip':True,
+         'call_affine_transform':True,         'call_clip':True,
          'call_to_NPY':True}
 
 
