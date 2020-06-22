@@ -88,7 +88,7 @@ Use MSE loss:
 m_loss = tf.keras.losses.MSE
 
 ### adam optimizer for SGD ###
-optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, momentum=momentum)
+optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=momentum)
 
 ### intialize metrics ###
 train_loss = tf.keras.metrics.Mean(name='train_loss')
