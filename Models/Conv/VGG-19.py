@@ -140,6 +140,7 @@ def test_step(idx, sample, label):
 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
 train_log_dir = './logs/gradient_tape/' + current_time + '/train'
 test_log_dir = './logs/gradient_tape/' + current_time + '/test'
+graph_log_dir = './logs/gradient_tape/' + current_time + '/graph'
 # image_log_dir = './logs/gradient_tape/' + current_time + '/image'
 train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 test_summary_writer = tf.summary.create_file_writer(test_log_dir)
@@ -175,19 +176,27 @@ for epoch in range(EPOCHS):
                 plt.savefig(r"/project/6026587/x2017sre")
             sample = np.array(sample)[np.newaxis, ...]
             label = np.array(label)[np.newaxis, ...]
+
+            # trace graph #
+            tf.summary.trace_on()
             train_step(idx, sample, label)
+            tf.summary.trace_export()
 
         # write to train-log #
         with train_summary_writer.as_default():
             tf.summary.scalar('loss', train_loss.result(), step=epoch)
             tf.summary.scalar('accuracy', train_accuracy.result(), step=epoch)
 
-        # test step
+        # test step #
         batch = test_data.get_test_batch(batch_size=batch_size)
         for sample, label in zip(batch[0], batch[1]):
             sample = np.array(sample)[np.newaxis, ...]
             label = np.array(label)[np.newaxis, ...]
+
+            # trace graph
+            tf.summary.trace_on()
             test_step(idx, sample, label)
+            tf.summary.trace_export()
 
         # write to test-log #
         with test_summary_writer.as_default():
@@ -215,4 +224,3 @@ for epoch in range(EPOCHS):
                               train_accuracy.result() * 100,
                               test_loss.result(),
                               test_accuracy.result() * 100))
-
