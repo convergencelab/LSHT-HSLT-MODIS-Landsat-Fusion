@@ -19,6 +19,7 @@ import os
 import load_EuroSat as lE
 from datetime import datetime
 import csv
+tf.autograph.set_verbosity(3)
 
 _CITATION = """
     @misc{helber2017eurosat,
@@ -66,16 +67,24 @@ test_data.load_data()
 train_data.prepare_for_training(batch_size=batch_size)
 test_data.prepare_for_testing()
 
-### initialize model ###
-vgg = tf.keras.applications.VGG19(
-    include_top=True,
-    weights=None,
+### initialize model with pre-trained weights ###
+base_vgg = tf.keras.applications.VGG19(
+    include_top=False,
+    weights=r"/home/x2017sre/projects/def-jhughe54/x2017sre/.keras/models/vgg19_weights_tf_dim_ordering_tf_kernels_notop.h5",
     input_tensor=None,
     input_shape=[224, 224, 3],
     pooling=None,
-    classes=10,
+    classes=1000,
     classifier_activation="softmax"
 )
+ # build top for model. #
+x = base_vgg.output
+x = tf.keras.layers.GlobalAveragePooling2D()(x)
+x = tf.keras.layers.Dense(1024,activation='relu')(x) #we add dense layers so that the model can learn more complex functions and classify for better results.
+x = tf.keras.layers.Dense(512,activation='relu')(x) #dense layer 2
+preds = tf.keras.layers.Dense(10,activation='softmax')(x) # probability of image
+vgg = tf.keras.models.Model(inputs=base_vgg.input, outputs=preds)
+
 
 
 ### loss function ###
@@ -144,8 +153,9 @@ graph_log_dir = './logs/gradient_tape/' + current_time + '/graph'
 # image_log_dir = './logs/gradient_tape/' + current_time + '/image'
 train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 test_summary_writer = tf.summary.create_file_writer(test_log_dir)
-# image_summary_writer = tf.summary.create_file_writer(image_log_dir)
-# Use tf.summary.scalar() to log metrics in training #
+graph_writer = tf.summary.create_file_writer(graph_log_dir)
+
+
 
 ### Weights Dir ###
 if not os.path.isdir('./checkpoints'):
@@ -163,6 +173,7 @@ for epoch in range(EPOCHS):
     test_loss.reset_states()
     test_accuracy.reset_states()
 
+
     for idx in range(train_data.get_ds_size() // batch_size):
 
         # train step
@@ -177,10 +188,11 @@ for epoch in range(EPOCHS):
             sample = np.array(sample)[np.newaxis, ...]
             label = np.array(label)[np.newaxis, ...]
 
-            # trace graph #
             tf.summary.trace_on()
             train_step(idx, sample, label)
-            tf.summary.trace_export()
+        # trace graph #
+        with graph_writer.as_default():
+            tf.summary.trace_export(name='vgg-19', step=0)
 
         # write to train-log #
         with train_summary_writer.as_default():
@@ -192,11 +204,7 @@ for epoch in range(EPOCHS):
         for sample, label in zip(batch[0], batch[1]):
             sample = np.array(sample)[np.newaxis, ...]
             label = np.array(label)[np.newaxis, ...]
-
-            # trace graph
-            tf.summary.trace_on()
             test_step(idx, sample, label)
-            tf.summary.trace_export()
 
         # write to test-log #
         with test_summary_writer.as_default():
@@ -209,12 +217,11 @@ for epoch in range(EPOCHS):
         csv_writer.writerow([train_loss.result(),
                              train_accuracy.result(),
                              test_loss.result(),
-                             test_accuracy.result()])
+                              test_accuracy.result()])
     ### save weights ###
     if not epoch % NUM_CHECKPOINTS_DIV:
-        vgg.save_weights('./checkpoints/my_checkpoint_{}'.format(save_c))
+        vgg.save_weights('/project/6026587/x2017sre/checkpoints/{}/{}'.format(current_time, save_c))
         save_c += 1
-
 
     if not epoch % 100:
         ### outputs every 100 epochs so .out file from slurm is not huge. ###

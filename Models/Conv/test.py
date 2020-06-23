@@ -3,19 +3,8 @@ import load_EuroSat as lE
 import os
 import numpy as np
 
-### initialize model ###
-vgg = tf.keras.applications.VGG19(
-    include_top=True,
-    weights=None,
-    input_tensor=None,
-    input_shape=[224, 224, 3],
-    pooling=None,
-    classes=10,
-    classifier_activation="softmax"
-)
 
 euro_path = r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\EuroSat"
-
 
 
 ### initalize loaders ###
@@ -31,11 +20,13 @@ test_data.load_data()
 ### prep train-data ###
 train_data.prepare_for_training(batch_size=10)
 test_data.prepare_for_testing()
-
-batch = train_data.get_train_batch()
-
-sample = batch[0][0]
-sample = np.array(sample)[np.newaxis, ...]
-
-
+indexes = []
+while True:
+    try:
+        batch = train_data.get_train_batch()
+        for i in batch[1]:
+            if i[0] not in indexes:
+                indexes.append(i)
+    except:
+        break
 
