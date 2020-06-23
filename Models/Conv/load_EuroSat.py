@@ -80,7 +80,8 @@ class loader(object):
         :return:
         """
         # iterate one class at a time
-        label = tf.constant(np.array(class_idx).astype('float32').reshape((1)))
+        label = (np.arange(10) == class_idx).astype('float32')
+        label = tf.constant(label)
         # load file
         img = tf.io.read_file(img_file_path)
         # string tensor is converted to tf.image

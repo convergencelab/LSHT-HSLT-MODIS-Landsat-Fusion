@@ -37,7 +37,5 @@ batch = train_data.get_train_batch()
 sample = batch[0][0]
 sample = np.array(sample)[np.newaxis, ...]
 
-sample = tf.image.resize(sample, (224, 224))
-sample = tf.keras.applications.vgg19.preprocess_input(sample)
 
-out = vgg.predict(sample)
+
