@@ -14,7 +14,7 @@ vgg = tf.keras.applications.VGG19(
     classifier_activation="softmax"
 )
 
-euro_path = r"/project/6026587/x2017sre/EuroSat/"
+euro_path = r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\EuroSat"
 
 
 
