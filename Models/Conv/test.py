@@ -4,6 +4,22 @@ import os
 import numpy as np
 
 
+### initialize model with pre-trained weights ###
+base_vgg = tf.keras.applications.VGG19(
+    include_top=False,
+    weights=r"C:\Users\Noah Barrett\Desktop\School\Research 2020\code\super-res\weights\vgg19_weights_tf_dim_ordering_tf_kernels_notop.h5",
+    input_tensor=None,
+    input_shape=[224, 224, 3],
+    pooling=None,
+    classes=1000,
+    classifier_activation="softmax"
+)
+
+
+
+
+
+r"""
 euro_path = r"C:\Users\Noah Barrett\Desktop\School\Research 2020\data\EuroSat"
 
 
@@ -29,4 +45,4 @@ while True:
                 indexes.append(i)
     except:
         break
-
+"""

@@ -70,7 +70,7 @@ def gen_train_step(high_res, low_res):
     # mean squared error in prediction
     m_loss = tf.keras.losses.MSE(high_res, predictions)
 
-    # get features from vgg and compare with predictions
+    # content loss
     v_pass = vgg(high_res)
     v_loss = tf.keras.losses.MSE(v_pass, predictions)
 

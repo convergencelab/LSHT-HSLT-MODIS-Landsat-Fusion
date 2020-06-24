@@ -34,10 +34,10 @@ _CITATION = """
 ### HYPER-PARAMS ###
 # it is noted in https://arxiv.org/pdf/1609.04802.pdf
 # momentum=0.9, learning rate = 0.0001
-learning_rate = 0.0001
+learning_rate = 0.01
 weight_decay = 0
 momentum = 0.9
-batch_size = 64
+batch_size = 256
 
 ### manually store data ###
 fname = "/project/6026587/x2017sre/manual_logs/" + datetime.now().strftime("%Y%m%d-%H%M%S") + "_train_results.csv"
