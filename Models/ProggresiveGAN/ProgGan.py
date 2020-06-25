@@ -24,7 +24,9 @@ from tensorflow.keras.constraints import max_norm
 from tensorflow.keras.initializers import RandomNormal
 from tensorflow.keras import backend
 from matplotlib import pyplot
+import os
 
+DATAPATH = os.path.join(os.environ['SR_DATA'], "patternNet_all.npz")
 ### Custom Components ###
 
 # Weighted Sum #
@@ -293,7 +295,7 @@ def define_generator(latent_dim, n_blocks, in_dim=4):
     # conv 3x3
     g = Conv2D(128, (3, 3), padding='same', kernel_initializer=init, kernel_constraint=const)(g)
     g = PixelNormalization()(g)
-    g = LeakyReLU(alpha=0.2)(g).
+    g = LeakyReLU(alpha=0.2)(g)
     # conv 1x1, output block
     out_image = Conv2D(3, (1, 1), padding='same', kernel_initializer=init, kernel_constraint=const)(g)
     # define model
@@ -336,10 +338,10 @@ def define_composite(discriminators, generators):
 ### training ###
 
 # load dataset
-def load_real_samples(filename):
+def load_real_samples():
     # TODO: make loading function for my data
 	# load dataset
-	data = load(filename)
+	data = load(DATAPATH)
 	# extract numpy array
 	X = data['arr_0']
 	# convert from ints to floats
@@ -508,10 +510,10 @@ g_models = define_generator(latent_dim, n_blocks)
 # define composite models
 gan_models = define_composite(d_models, g_models)
 # load image data
-dataset = load_real_samples('img_align_celeba_128.npz')
+dataset = load_real_samples()
 print('Loaded', dataset.shape)
 # train model
 n_batch = [16, 16, 16, 8, 4, 4]
 # 10 epochs == 500K images per training phase
 n_epochs = [5, 8, 8, 10, 10, 10]
-train(g_models, d_models, gan_models, dataset, latent_dim, n_epochs, n_epochs, n_ba
+train(g_models, d_models, gan_models, dataset, latent_dim, n_epochs, n_epochs, n_batch)
