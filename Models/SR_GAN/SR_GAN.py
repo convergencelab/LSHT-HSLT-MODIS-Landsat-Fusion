@@ -23,22 +23,21 @@ discriminator D that is tained to distinguish super-resolved images from real im
 import tensorflow as tf
 from Generator import Generator
 from Discriminator import Discriminator
+from Perceptual_loss_VGG import PL_VGG19
 from Models.NPYDataGenerator import NPYDataGeneratorSR
 import Data_Extraction.util as util
+
 tf.keras.backend.set_floatx('float64')
 
 ### data ###
-training_generator = NPYDataGeneratorSR(file_dir=util.OUTPUT_DIR + r"\deep_learning\PatternNet\TRAIN\super_res_NPY"
-									  )
-validation_generator = NPYDataGeneratorSR(file_dir=util.OUTPUT_DIR +r"\deep_learning\PatternNet\TEST\super_res_NPY"
-						)
+training_generator = NPYDataGeneratorSR(file_dir=util.OUTPUT_DIR + r"/home/x2017sre/scratch/PatternNet/TEST")
+validation_generator = NPYDataGeneratorSR(file_dir=util.OUTPUT_DIR +r"/home/x2017sre/scratch/PatternNet/TRAIN")
 
 ### models ###
 generator = Generator()
 discriminator = Discriminator()
-vgg = tf.keras.applications.VGG19()
-# only use 1st and 2nd layer
-vgg = tf.keras.Sequential(vgg.layers[:7])
+# use 1st conv block for content loss
+vgg = PL_VGG19([0,1,2])
 
 ### loss functions ###
 gen_loss = tf.keras.losses.BinaryCrossentropy()
