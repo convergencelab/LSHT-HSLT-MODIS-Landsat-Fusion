@@ -15,7 +15,17 @@ class WeightedSum(tf.keras.layers.Add):
     def __init__(self, alpha=0.0, **kwargs):
         super(WeightedSum, self).__init__(**kwargs)
         # tensor variable
-        self.alpha = tf.keras.backend.variable(alpha, name='ws_alpha')
+        #self.alpha = tf.keras.backend.variable(alpha, name='ws_alpha')
+        self.alpha = 0.0
+
+    def set_alpha(self, alpha):
+        """
+        set alpha for the layer
+        :param alpha: float between 0.0-1.0
+        :return:None
+        """
+        #self.alpha = tf.keras.backend.variable(alpha, name='ws_alpha')
+        self.alpha = alpha
 
     # output a weighted sum of inputs
     def _merge_function(self, inputs):

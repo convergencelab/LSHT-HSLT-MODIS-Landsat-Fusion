@@ -142,7 +142,6 @@ def test_step(idx, sample, label):
     test_accuracy(label, predictions)
 
 
-
 ### tensorboard ###
 
 # initialize logs #
@@ -154,8 +153,6 @@ graph_log_dir = './logs/gradient_tape/' + current_time + '/graph'
 train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 graph_writer = tf.summary.create_file_writer(graph_log_dir)
-
-
 
 ### Weights Dir ###
 if not os.path.isdir('./checkpoints'):
@@ -173,9 +170,7 @@ for epoch in range(EPOCHS):
     test_loss.reset_states()
     test_accuracy.reset_states()
 
-
     for idx in range(train_data.get_ds_size() // batch_size):
-
         # train step
         batch = train_data.get_train_batch()
         for sample, label in zip(batch[0], batch[1]):
@@ -187,7 +182,6 @@ for epoch in range(EPOCHS):
                 plt.savefig(r"/project/6026587/x2017sre")
             sample = np.array(sample)[np.newaxis, ...]
             label = np.array(label)[np.newaxis, ...]
-
             tf.summary.trace_on()
             train_step(idx, sample, label)
         # trace graph #
